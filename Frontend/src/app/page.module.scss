@@ -1,0 +1,21 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #000;
+    text-align: center;
+  }
+
+  p {
+    font-size: 1rem;
+    font-weight: 400;
+    text-align: center;
+  }
+}
