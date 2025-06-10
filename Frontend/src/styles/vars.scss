@@ -1,0 +1,27 @@
+// Color Tokens
+$colors: (
+  // Primary Colors
+  'primary': #ff2d2d,
+  'primary-light': rgba(255, 45, 45, 0.1),
+  'primary-border': rgba(255, 45, 45, 0.2),
+
+  // Neutral Colors
+  'white': #fff,
+  'off-white': #fafafa,
+  'light-gray': #f2f2f2,
+
+  // Text Colors
+  'text-primary': #111,
+  'text-secondary': #222,
+);
+
+// Function to get color values
+@function color($color-name) {
+  @return map-get($colors, $color-name);
+}
+
+// Usage example:
+// .my-element {
+//   color: color('primary');
+//   background-color: color('white');
+// }

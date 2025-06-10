@@ -1,0 +1,79 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# Guía de Componentes
+
+## Estructura de Archivos
+Los componentes se organizan en la carpeta `src/components/` siguiendo esta estructura:
+- Cada componente tiene su propia carpeta
+- El archivo principal del componente usa la extensión `.tsx`
+- Los estilos se definen en un archivo `.module.scss` con el mismo nombre
+- Los tests se colocan en un archivo `.test.tsx`
+
+Ejemplo:
+```
+src/components/
+  ├── ComponentName/
+  │   ├── ComponentName.tsx
+  │   ├── ComponentName.module.scss
+  │   └── ComponentName.test.tsx
+```
+
+## Convenciones de Nombrado
+- Los componentes usan PascalCase (ej: `CourseCard`, `UserProfile`)
+- Los archivos de componentes usan el mismo nombre que el componente
+- Los archivos de estilos usan el mismo nombre que el componente
+- Los nombres de las clases CSS usan camelCase
+
+## Estructura de Componentes
+1. **Imports**
+   - Primero los imports de React y librerías externas
+   - Luego los imports de componentes internos
+   - Finalmente los imports de estilos y tipos
+
+2. **Tipos**
+   - Definir interfaces/types antes del componente
+   - Usar TypeScript para todas las props
+   - Exportar tipos que puedan ser reutilizados
+
+3. **Componente**
+   - Usar arrow functions para componentes funcionales
+   - Nombrar props de manera descriptiva
+   - Incluir PropTypes o TypeScript para validación de tipos
+
+4. **Estilos**
+   - Usar CSS Modules para evitar conflictos de nombres
+   - Seguir BEM para nombrar clases cuando sea necesario
+   - Mantener los estilos específicos del componente en su archivo .module.scss
+
+## Ejemplo de Estructura
+```tsx
+import { FC } from 'react';
+import styles from './ComponentName.module.scss';
+import { ComponentProps } from '@/types';
+
+export const ComponentName: FC<ComponentProps> = ({ prop1, prop2 }) => {
+  return (
+    <div className={styles.container}>
+      {/* Contenido del componente */}
+    </div>
+  );
+};
+```
+
+## Buenas Prácticas
+1. **Componentes**
+   - Mantener componentes pequeños y enfocados
+   - Extraer lógica compleja a hooks personalizados
+   - Usar memo cuando sea necesario para optimizar el rendimiento
+
+2. **Props**
+   - Proporcionar valores por defecto cuando sea apropiado
+   - Validar props con TypeScript
+
+3. **Accesibilidad**
+   - Incluir atributos ARIA cuando sea necesario
+   - Asegurar contraste de colores adecuado
+   - Proporcionar textos alternativos para imágenes

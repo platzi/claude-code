@@ -1,12 +1,47 @@
 import styles from "./page.module.scss";
+import { Course } from "@/types";
+import { Course as CourseComponent } from "@/components/Course/Course";
 
-export default function Home() {
+async function getCourses(): Promise<Course[]> {
+  const res = await fetch("http://localhost:8000/courses", { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error("Failed to fetch courses");
+  }
+  const data = await res.json();
+  return data.data;
+}
+
+export default async function Home() {
+  const courses = await getCourses();
+
   return (
     <div className={styles.page}>
-      <main>
-        <h1>Platzi Flix</h1>
-        <p>Curso de Cursor IDE por Platzi</p>
+      {/* Banner superior */}
+      <header className={styles.banner}>
+        <span className={styles.bannerRed}>PLATZI</span>
+        <span className={styles.bannerBlack}>FLIX</span>
+        <span className={styles.bannerSub}>CURSOS</span>
+      </header>
+      {/* Nombres laterales */}
+      <div className={styles.verticalLeft}>PLATZI</div>
+      <div className={styles.verticalRight}>FLIX</div>
+      {/* Grid de cursos */}
+      <main className={styles.main}>
+        <div className={styles.coursesGrid}>
+          {courses.map((course) => (
+            <CourseComponent
+              key={course.id}
+              id={course.id}
+              title={course.title}
+              teacher={course.teacher}
+              duration={course.duration}
+              thumbnail={course.thumbnail}
+            />
+          ))}
+        </div>
       </main>
+      {/* Fondo de cuadrícula */}
+      <div className={styles.gridBg}></div>
     </div>
   );
 }
