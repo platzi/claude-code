@@ -1,0 +1,50 @@
+@import '../../../styles/vars.scss';
+
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: color('white');
+}
+
+.loadingCard {
+  background: color('white');
+  border-radius: 18px;
+  padding: 3rem;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.10);
+  border: 2px solid color('light-gray');
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid color('light-gray');
+  border-top: 4px solid color('primary');
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 2rem auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: color('text-primary');
+  margin-bottom: 1rem;
+}
+
+.message {
+  color: color('text-secondary');
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.5;
+}

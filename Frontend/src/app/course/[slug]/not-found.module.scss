@@ -1,0 +1,57 @@
+@import '../../../styles/vars.scss';
+
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: color('white');
+}
+
+.notFoundCard {
+  background: color('white');
+  border-radius: 18px;
+  padding: 3rem;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.10);
+  border: 2px solid color('light-gray');
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: color('text-primary');
+  margin-bottom: 1rem;
+}
+
+.message {
+  color: color('text-secondary');
+  font-size: 1.1rem;
+  font-weight: 500;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+.homeButton {
+  background: color('primary');
+  color: color('white');
+  text-decoration: none;
+  border-radius: 12px;
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  display: inline-block;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}

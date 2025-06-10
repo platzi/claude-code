@@ -1,0 +1,87 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# SCSS Styling Conventions
+
+## General Structure
+- All SCSS files should import variables from `styles/vars.scss`
+- Use module-based CSS with `.module.scss` extension
+- Follow BEM-like naming conventions for class names
+
+## Common Patterns
+
+### Card Components
+- Use `.card` or component-specific card classes (e.g., `.courseCard`)
+- Standard card properties:
+  - Border radius: 18px
+  - Box shadow: 0 6px 24px rgba(0,0,0,0.10)
+  - Border: 2px solid color('light-gray')
+  - Hover effects: translateY(-8px) scale(1.02)
+
+### Layout
+- Use flexbox for layouts
+- Common flex patterns:
+  - `display: flex`
+  - `flex-direction: column`
+  - `gap` for spacing between elements
+  - `align-items: center`
+  - `justify-content: center`
+
+### Typography
+- Font sizes:
+  - Large titles: 3.5rem
+  - Card titles: 1.7rem
+  - Subtitles: 1.2rem
+  - Body text: 1rem
+- Font weights:
+  - Bold titles: 900
+  - Card titles: 800
+  - Subtitles: 600
+  - Body text: 500
+
+### Colors
+- Use color function: `color('color-name')`
+- Common color variables:
+  - `white`
+  - `primary`
+  - `text-primary`
+  - `text-secondary`
+  - `light-gray`
+  - `off-white`
+
+### Transitions
+- Standard transition duration: 0.2s - 0.3s
+- Common transitions:
+  - Transform
+  - Box shadow
+  - Border color
+
+### Spacing
+- Padding: 1.5rem - 2rem
+- Margins: 0.2rem - 2.5rem
+- Gaps: 0.5rem - 2.5rem
+
+### Responsive Design
+- Use relative units (rem) for typography
+- Use percentage-based widths for containers
+- Maintain aspect ratios for images using `object-fit: cover`
+
+### Hover Effects
+- Scale transforms: 1.02 - 1.04
+- Elevation changes: translateY(-8px)
+- Color transitions
+- Shadow enhancements
+
+## File Organization
+- Group related styles together
+- Use comments to separate sections
+- Keep related properties grouped (layout, typography, colors, etc.)
+
+## Best Practices
+- Use CSS variables for consistent theming
+- Implement smooth transitions for interactive elements
+- Maintain consistent spacing and sizing
+- Use semantic class names
+- Keep styles modular and reusable
