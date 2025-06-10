@@ -1,0 +1,19 @@
+.videoPlayer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin: 2rem 0;
+}
+
+.video {
+  width: 100%;
+  max-width: 800px;
+  border-radius: 18px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.10);
+  border: 2px solid #e0e0e0;
+  background: #000;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+}

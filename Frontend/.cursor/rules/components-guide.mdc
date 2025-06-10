@@ -37,6 +37,8 @@ src/components/
    - Definir interfaces/types antes del componente
    - Usar TypeScript para todas las props
    - Exportar tipos que puedan ser reutilizados
+   - Siempre importar y usar los tipos del proyecto desde `@/types` cuando estén disponibles
+   - Solo crear nuevos tipos cuando no existan en `@/types` o sean específicos del componente
 
 3. **Componente**
    - Usar arrow functions para componentes funcionales

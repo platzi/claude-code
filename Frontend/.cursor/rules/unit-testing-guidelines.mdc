@@ -1,0 +1,111 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# Unit Testing Guidelines for React Components
+
+## Test Structure
+- Use `describe` blocks to group related tests for a component
+- Use `it` or `test` blocks for individual test cases
+- Follow the pattern: "it should [expected behavior]"
+- Keep test descriptions clear and descriptive
+
+## Component Testing Best Practices
+
+### 1. Mock Data
+- Create mock data objects at the top of your test file
+- Mock data should represent realistic component props
+- Use TypeScript interfaces/types when available
+
+### 2. Rendering Tests
+- Test that the component renders without crashing
+- Verify that all required elements are present
+- Check for correct text content and attributes
+- Use semantic queries from `@testing-library/react`:
+  - `getByText` for text content
+  - `getByRole` for interactive elements
+  - `getByTestId` as a last resort
+
+### 3. Component Structure Tests
+- Verify the correct HTML structure
+- Check for proper nesting of elements
+- Validate presence of key containers and wrappers
+- Test for correct class names and styling attributes
+
+### 4. Props and State Tests
+- Test component behavior with different prop combinations
+- Verify state changes and updates
+- Test prop validation and default values
+- Check error handling for invalid props
+
+### 5. Event Handling Tests
+- Test user interactions (clicks, inputs, etc.)
+- Verify event handlers are called with correct parameters
+- Test async operations and loading states
+- Check error handling in event handlers
+
+### 6. Accessibility Tests
+- Verify proper ARIA attributes
+- Test keyboard navigation
+- Check for proper heading hierarchy
+- Validate form labels and controls
+
+## Example Test Structure
+```typescript
+describe("ComponentName", () => {
+  const mockProps = {
+    // Mock props here
+  };
+
+  it("renders without crashing", () => {
+    render(<ComponentName {...mockProps} />);
+    // Basic render test
+  });
+
+  it("displays correct content", () => {
+    render(<ComponentName {...mockProps} />);
+    // Content verification
+  });
+
+  it("handles user interactions correctly", () => {
+    render(<ComponentName {...mockProps} />);
+    // Interaction tests
+  });
+
+  it("maintains correct structure", () => {
+    const { container } = render(<ComponentName {...mockProps} />);
+    // Structure verification
+  });
+});
+```
+
+## Testing Library Best Practices
+- Use `screen` queries instead of destructuring `render`
+- Prefer user-centric queries over implementation details
+- Use `getByRole` as the primary query method
+- Avoid using `container.querySelector` when possible
+- Use `findBy` for async operations
+- Use `within` for scoped queries
+
+## Common Assertions
+- `expect(element).toBeInTheDocument()`
+- `expect(element).toHaveAttribute(attr, value)`
+- `expect(element).toHaveTextContent(text)`
+- `expect(element).toHaveClass(className)`
+- `expect(element).toBeVisible()`
+- `expect(element).toBeDisabled()`
+
+## Test File Organization
+- Keep test files close to the components they test
+- Use `__tests__` directory or `.test.tsx` suffix
+- Group related tests logically
+- Keep tests focused and isolated
+- Avoid test interdependence
+
+## Performance Considerations
+- Mock heavy dependencies
+- Use `vi.mock()` for module mocking
+- Clean up after each test
+- Avoid unnecessary renders
+- Use `vi.useFakeTimers()` for time-dependent tests

@@ -1,0 +1,30 @@
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 1.5rem 0 0.5rem;
+}
+
+.description {
+  font-size: 1.1rem;
+  color: color('text-secondary');
+  margin-bottom: 2rem;
+}
+
+.backButton {
+  text-decoration: none;
+  color: color('primary');
+  font-weight: 600;
+  transition: color 0.2s;
+  &:hover {
+    color: color('text-primary');
+  }
+}
