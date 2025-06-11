@@ -23,12 +23,12 @@ struct CourseCardView: View {
                         .aspectRatio(16/9, contentMode: .fill)
                 } placeholder: {
                     RoundedRectangle(cornerRadius: Radius.radiusMedium)
-                        .fill(Color.neutralGray200)
+                        .fill(Color(.systemGray5))
                         .aspectRatio(16/9, contentMode: .fit)
                         .overlay(
                             Image(systemName: "photo")
                                 .font(.title2)
-                                .foregroundColor(Color.neutralGray600)
+                                .foregroundColor(.secondary)
                         )
                 }
                 .frame(height: 160)
@@ -40,14 +40,14 @@ struct CourseCardView: View {
                 VStack(alignment: .leading, spacing: Spacing.spacing2) {
                     Text(course.name)
                         .font(.title3)
-                        .foregroundColor(.neutralBlack)
+                        .foregroundColor(.primary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                         .accessibilityAddTraits(.isHeader)
                     
                     Text(course.displayDescription)
                         .font(.bodyRegular)
-                        .foregroundColor(.neutralGray600)
+                        .foregroundColor(.secondary)
                         .lineLimit(3)
                         .multilineTextAlignment(.leading)
                 }
@@ -66,36 +66,30 @@ struct CourseCardView: View {
     }
 }
 
-// MARK: - Preview
-struct CourseCardView_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            // Light mode preview
-            CourseCardView(course: Course.mockCourses[0]) {
-                print("Course tapped")
-            }
-            .padding()
-            .previewDisplayName("Light Mode")
-            
-            // Dark mode preview
-            CourseCardView(course: Course.mockCourses[1]) {
-                print("Course tapped")
-            }
-            .padding()
-            .preferredColorScheme(.dark)
-            .previewDisplayName("Dark Mode")
-            
-            // Grid preview
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: Spacing.spacing4) {
-                ForEach(Course.mockCourses.prefix(4), id: \.id) { course in
-                    CourseCardView(course: course)
-                }
-            }
-            .padding()
-            .previewDisplayName("Grid Layout")
+// MARK: - Previews
+#Preview("Light Mode") {
+    CourseCardView(course: Course.mockCourses[0]) {
+        print("Course tapped")
+    }
+    .padding()
+}
+
+#Preview("Dark Mode") {
+    CourseCardView(course: Course.mockCourses[1]) {
+        print("Course tapped")
+    }
+    .padding()
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Grid Layout") {
+    LazyVGrid(columns: [
+        GridItem(.flexible()),
+        GridItem(.flexible())
+    ], spacing: Spacing.spacing4) {
+        ForEach(Course.mockCourses.prefix(4), id: \.id) { course in
+            CourseCardView(course: course)
         }
     }
+    .padding()
 } 

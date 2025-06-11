@@ -30,10 +30,10 @@ struct Course: Identifiable, Equatable {
 extension Course {
     static let mockCourses: [Course] = [
         Course(
-            id: 1,
-            name: "Curso de React",
-            description: "Aprende React desde cero hasta convertirte en un experto. Domina componentes, hooks, estado y mucho más en este curso completo.",
-            thumbnail: "https://via.placeholder.com/300x200/007AFF/FFFFFF?text=React",
+            id: 4,
+            name: "Curso de React.js",
+            description: "Aprende React.js desde cero hasta avanzado. Domina componentes, hooks, estado, contexto y las mejores prácticas para crear aplicaciones web modernas y escalables.",
+            thumbnail: "https://thumbs.cdn.mdstrm.com/thumbs/512e13acaca1ebcd2f000279/thumb_6733882e4711f40de0f1325f_6733882e4711f40de0f13270_13s.jpg?w=640&q=50",
             slug: "curso-de-react",
             teacherIds: [1, 2],
             createdAt: Date(),
@@ -41,23 +41,56 @@ extension Course {
             deletedAt: nil
         ),
         Course(
-            id: 2,
-            name: "Curso de Swift",
-            description: "Desarrolla aplicaciones iOS con Swift y SwiftUI. Aprende desde los fundamentos hasta crear apps profesionales.",
-            thumbnail: "https://via.placeholder.com/300x200/34C759/FFFFFF?text=Swift",
-            slug: "curso-de-swift",
+            id: 5,
+            name: "Curso de TypeScript",
+            description: "TypeScript para desarrolladores JavaScript. Aprende tipado estático, interfaces, genéricos y cómo mejorar la calidad de tu código con TypeScript.",
+            thumbnail: "https://thumbs.cdn.mdstrm.com/thumbs/512e13acaca1ebcd2f000279/thumb_67d87ffbbbb5bef2f6ad3e82_67d87ffbbbb5bef2f6ad3e91_11s.jpg?w=640&q=50",
+            slug: "curso-de-typescript",
+            teacherIds: [2, 3],
+            createdAt: Date(),
+            updatedAt: Date(),
+            deletedAt: nil
+        ),
+        Course(
+            id: 6,
+            name: "Curso de Node.js",
+            description: "Backend con Node.js y Express. Construye APIs robustas, maneja bases de datos, autenticación y deploy de aplicaciones del lado del servidor.",
+            thumbnail: "https://thumbs.cdn.mdstrm.com/thumbs/512e13acaca1ebcd2f000279/thumb_67f83a7ecf68920dd17d6ee2_67f83a7ecf68920dd17d6ef3_13s.jpg?w=640&q=50",
+            slug: "curso-de-nodejs",
+            teacherIds: [1, 4],
+            createdAt: Date(),
+            updatedAt: Date(),
+            deletedAt: nil
+        ),
+        Course(
+            id: 7,
+            name: "Curso de Vue.js",
+            description: "Desarrolla aplicaciones web reactivas con Vue.js. Aprende el framework progresivo más fácil de usar para crear interfaces de usuario interactivas.",
+            thumbnail: "https://thumbs.cdn.mdstrm.com/thumbs/512e13acaca1ebcd2f000279/thumb_6733882e4711f40de0f1325f_6733882e4711f40de0f13270_13s.jpg?w=640&q=50",
+            slug: "curso-de-vue",
             teacherIds: [2],
             createdAt: Date(),
             updatedAt: Date(),
             deletedAt: nil
         ),
         Course(
-            id: 3,
-            name: "Curso de JavaScript",
-            description: "Domina JavaScript moderno con ES6+, async/await, promises y las mejores prácticas de desarrollo.",
-            thumbnail: "https://via.placeholder.com/300x200/FF9500/FFFFFF?text=JavaScript",
-            slug: "curso-de-javascript",
-            teacherIds: [1, 3],
+            id: 8,
+            name: "Curso de Python",
+            description: "Python desde cero hasta avanzado. Aprende programación, estructuras de datos, POO y cómo crear aplicaciones web con Django y Flask.",
+            thumbnail: "https://thumbs.cdn.mdstrm.com/thumbs/512e13acaca1ebcd2f000279/thumb_67d87ffbbbb5bef2f6ad3e82_67d87ffbbbb5bef2f6ad3e91_11s.jpg?w=640&q=50",
+            slug: "curso-de-python",
+            teacherIds: [3, 5],
+            createdAt: Date(),
+            updatedAt: Date(),
+            deletedAt: nil
+        ),
+        Course(
+            id: 9,
+            name: "Curso de Swift para iOS",
+            description: "Desarrolla aplicaciones iOS nativas con Swift y SwiftUI. Aprende desde los fundamentos hasta crear apps profesionales para el App Store.",
+            thumbnail: "https://thumbs.cdn.mdstrm.com/thumbs/512e13acaca1ebcd2f000279/thumb_67f83a7ecf68920dd17d6ee2_67f83a7ecf68920dd17d6ef3_13s.jpg?w=640&q=50",
+            slug: "curso-de-swift-ios",
+            teacherIds: [4, 6],
             createdAt: Date(),
             updatedAt: Date(),
             deletedAt: nil

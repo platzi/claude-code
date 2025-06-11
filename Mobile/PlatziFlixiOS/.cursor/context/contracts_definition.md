@@ -11,6 +11,7 @@ plataforma online de cursos, cada cursos tiene clases, descripciones y no hay mu
 
 ### Contratos
 
+- api url: http://localhost:8000
 
 - Course
 ```json

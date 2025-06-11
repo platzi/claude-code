@@ -5,17 +5,11 @@ struct CourseListView: View {
     @StateObject private var viewModel = CourseListViewModel()
     @State private var showSearchBar = false
     
-    // Grid configuration for course cards
-    private let columns = [
-        GridItem(.flexible(), spacing: Spacing.spacing4),
-        GridItem(.flexible(), spacing: Spacing.spacing4)
-    ]
-    
     var body: some View {
         NavigationView {
             ZStack {
-                // Background color
-                Color.neutralGray200
+                // Background color - using system background for better dark mode
+                Color.groupedBackground
                     .ignoresSafeArea()
                 
                 if viewModel.isLoadingCourses {
@@ -69,7 +63,7 @@ struct CourseListView: View {
             
             Text("Cargando cursos...")
                 .font(.bodyEmphasized)
-                .foregroundColor(.neutralGray600)
+                .foregroundColor(.secondary)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Cargando cursos")
@@ -79,17 +73,17 @@ struct CourseListView: View {
         VStack(spacing: Spacing.spacing6) {
             Image(systemName: "book.closed")
                 .font(.system(size: 64))
-                .foregroundColor(.neutralGray400)
+                .foregroundColor(.secondary)
             
             VStack(spacing: Spacing.spacing3) {
                 Text("No hay cursos disponibles")
                     .font(.title2)
                     .fontWeight(.semibold)
-                    .foregroundColor(.neutralGray900)
+                    .foregroundColor(.primary)
                 
                 Text("Intenta recargar o vuelve más tarde")
                     .font(.bodyRegular)
-                    .foregroundColor(.neutralGray600)
+                    .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
             }
             
@@ -97,7 +91,7 @@ struct CourseListView: View {
                 viewModel.refreshCourses()
             }
             .font(.buttonMedium)
-            .foregroundColor(.neutralWhite)
+            .foregroundColor(.white)
             .padding(.horizontal, Spacing.spacing6)
             .padding(.vertical, Spacing.spacing3)
             .background(Color.primaryBlue)
@@ -116,15 +110,15 @@ struct CourseListView: View {
                     HStack {
                         Text("Resultados para '\(viewModel.searchText)'")
                             .font(.bodyEmphasized)
-                            .foregroundColor(.neutralGray600)
+                            .foregroundColor(.secondary)
                         Spacer()
                     }
                     .padding(.horizontal, Spacing.spacing4)
                     .padding(.top, Spacing.spacing2)
                 }
                 
-                // Course grid
-                LazyVGrid(columns: columns, spacing: Spacing.spacing4) {
+                // Course list - Changed from grid to vertical stack
+                LazyVStack(spacing: Spacing.spacing4) {
                     ForEach(viewModel.filteredCourses) { course in
                         CourseCardView(course: course) {
                             viewModel.selectCourse(course)
@@ -140,28 +134,22 @@ struct CourseListView: View {
     }
 }
 
-// MARK: - Preview
-struct CourseListView_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            // Normal state
-            CourseListView()
-                .previewDisplayName("Normal State")
-            
-            // Dark mode
-            CourseListView()
-                .preferredColorScheme(.dark)
-                .previewDisplayName("Dark Mode")
-            
-            // iPhone SE
-            CourseListView()
-                .previewDevice("iPhone SE (3rd generation)")
-                .previewDisplayName("iPhone SE")
-            
-            // iPad
-            CourseListView()
-                .previewDevice("iPad Pro (11-inch) (4th generation)")
-                .previewDisplayName("iPad")
-        }
-    }
+// MARK: - Previews
+#Preview("Normal State") {
+    CourseListView()
+}
+
+#Preview("Dark Mode") {
+    CourseListView()
+        .preferredColorScheme(.dark)
+}
+
+#Preview("iPhone SE") {
+    CourseListView()
+        .previewDevice("iPhone SE (3rd generation)")
+}
+
+#Preview("iPad") {
+    CourseListView()
+        .previewDevice("iPad Pro (11-inch) (4th generation)")
 } 

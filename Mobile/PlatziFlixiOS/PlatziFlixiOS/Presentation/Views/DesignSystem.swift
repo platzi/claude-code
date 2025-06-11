@@ -8,20 +8,25 @@ extension Color {
     static let primaryGreen = Color(hex: "34C759")
     static let primaryRed = Color(hex: "FF3B30")
     
-    // Neutral Colors
-    static let neutralBlack = Color(hex: "000000")
-    static let neutralGray900 = Color(hex: "1C1C1E")
-    static let neutralGray800 = Color(hex: "2C2C2E")
-    static let neutralGray600 = Color(hex: "8E8E93")
-    static let neutralGray400 = Color(hex: "C7C7CC")
-    static let neutralGray200 = Color(hex: "F2F2F7")
-    static let neutralWhite = Color(hex: "FFFFFF")
+    // Adaptive Neutral Colors - These will automatically adapt to dark mode
+    static let neutralBlack = Color.primary
+    static let neutralGray900 = Color.primary
+    static let neutralGray800 = Color.secondary
+    static let neutralGray600 = Color.secondary
+    static var neutralGray400: Color { Color.secondary.opacity(0.6) }
+    static let neutralGray200 = Color(.systemGray6)
+    static let neutralWhite = Color(.systemBackground)
     
-    // Semantic Colors
+    // Semantic Colors - Using system colors for better dark mode support
     static let successGreen = Color(hex: "30D158")
     static let warningOrange = Color(hex: "FF9500")
     static let errorRed = Color(hex: "FF453A")
     static let infoBlue = Color(hex: "64D2FF")
+    
+    // Card and Surface Colors - Adaptive
+    static let cardBackground = Color(.secondarySystemBackground)
+    static let surfaceBackground = Color(.systemBackground)
+    static let groupedBackground = Color(.systemGroupedBackground)
     
     // Helper initializer for hex colors
     init(hex: String) {
@@ -86,9 +91,9 @@ extension Font {
 struct CardStyle: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .background(Color.neutralWhite)
+            .background(Color.cardBackground)
             .cornerRadius(Radius.radiusLarge)
-            .shadow(color: Color.neutralGray400.opacity(0.2), radius: 4, x: 0, y: 2)
+            .shadow(color: Color.primary.opacity(0.1), radius: 4, x: 0, y: 2)
     }
 }
 
