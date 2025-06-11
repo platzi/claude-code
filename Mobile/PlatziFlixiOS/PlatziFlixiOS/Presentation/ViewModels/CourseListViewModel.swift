@@ -36,9 +36,14 @@ class CourseListViewModel: ObservableObject {
     
     // MARK: - Private Properties
     private var cancellables = Set<AnyCancellable>()
+    private let courseRepository: CourseRepository
     
     // MARK: - Initialization
-    init() {
+    
+    /// Initializes the ViewModel with dependency injection
+    /// - Parameter courseRepository: Repository for course data operations
+    init(courseRepository: CourseRepository = RemoteCourseRepository()) {
+        self.courseRepository = courseRepository
         setupBindings()
         loadCourses()
     }
@@ -47,22 +52,16 @@ class CourseListViewModel: ObservableObject {
     
     /// Loads the courses from the repository
     func loadCourses() {
-        isLoading = true
-        errorMessage = nil
-        
-        // Simulate API call delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            guard let self = self else { return }
-            
-            // Using mock data for now - this would be replaced with repository call
-            self.courses = Course.mockCourses
-            self.isLoading = false
+        Task {
+            await performLoadCourses()
         }
     }
     
     /// Refreshes the course list
     func refreshCourses() {
-        loadCourses()
+        Task {
+            await performLoadCourses()
+        }
     }
     
     /// Handles course selection
@@ -77,6 +76,49 @@ class CourseListViewModel: ObservableObject {
     }
     
     // MARK: - Private Methods
+    
+    /// Performs the actual course loading operation
+    private func performLoadCourses() async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let fetchedCourses = try await courseRepository.getAllCourses()
+            courses = fetchedCourses
+        } catch {
+            errorMessage = handleError(error)
+            courses = []
+        }
+        
+        isLoading = false
+    }
+    
+    /// Handles and formats error messages for user display
+    /// - Parameter error: The error to handle
+    /// - Returns: User-friendly error message
+    private func handleError(_ error: Error) -> String {
+        switch error {
+        case NetworkError.networkUnavailable:
+            return "No hay conexión a internet. Verifica tu conexión e inténtalo de nuevo."
+        case NetworkError.timeout:
+            return "La solicitud tardó demasiado. Inténtalo de nuevo."
+        case NetworkError.requestFailed(let statusCode):
+            switch statusCode {
+            case 404:
+                return "No se encontraron cursos disponibles."
+            case 500...599:
+                return "Error del servidor. Inténtalo más tarde."
+            default:
+                return "Error al cargar los cursos (Código: \(statusCode))."
+            }
+        case NetworkError.decodingError:
+            return "Error al procesar los datos del servidor."
+        case NetworkError.invalidURL:
+            return "Error de configuración de la aplicación."
+        default:
+            return "Error inesperado. Inténtalo de nuevo."
+        }
+    }
     
     private func setupBindings() {
         // Debounce search text changes for better performance
