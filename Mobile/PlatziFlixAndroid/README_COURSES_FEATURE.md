@@ -63,7 +63,7 @@ app/src/main/java/com/espaciotiago/platziflixandroid/
 
 ### UI/UX
 - **Coil**: Carga de imágenes
-- **Pull-to-Refresh**: Actualización manual
+- **Manual Refresh**: Actualización con botón
 - **State Management**: Flujos reactivos con StateFlow
 
 ### Testing
@@ -77,7 +77,7 @@ app/src/main/java/com/espaciotiago/platziflixandroid/
 - [x] Lista de cursos con diseño responsive
 - [x] Carga asíncrona de datos
 - [x] Manejo de estados (Loading, Success, Error, Empty)
-- [x] Pull-to-refresh
+- [x] Refresh manual con botón
 - [x] Retry en caso de error
 - [x] Carga de imágenes optimizada
 
@@ -128,8 +128,16 @@ En `AndroidManifest.xml`:
 ### 3. Configuración de red
 En `NetworkModule.kt` se puede configurar la URL base:
 ```kotlin
-private const val BASE_URL = "http://localhost:8000/"
+// Para emulador Android
+private const val BASE_URL = "http://10.0.2.2:8000/"
+
+// Para dispositivo físico, usar tu IP local
+// private const val BASE_URL = "http://192.168.1.XXX:8000/"
 ```
+
+**Configuración de seguridad de red:**
+- `network_security_config.xml` permite HTTP en desarrollo
+- Configurado en `AndroidManifest.xml` con `android:networkSecurityConfig`
 
 ### 4. Modo desarrollo
 En `AppModule.kt` se puede alternar entre datos mock y API real:
@@ -161,7 +169,7 @@ fun PlatziFlixApp() {
 - **Success**: Lista de cursos
 - **Error**: Mensaje de error con botón de retry
 - **Empty**: Mensaje cuando no hay cursos
-- **Refreshing**: Pull-to-refresh activo
+- **Refreshing**: Actualización manual activa
 
 ## API Contract
 
@@ -208,6 +216,7 @@ GET /courses
 ## Próximas mejoras
 
 ### 🔄 Pendientes
+- [ ] Pull-to-refresh nativo
 - [ ] Caché local con Room
 - [ ] Paginación infinita
 - [ ] Filtros y búsqueda
@@ -226,15 +235,20 @@ GET /courses
 
 ### Problemas comunes
 
-1. **Error de conexión**
-   - Verificar permisos de internet
-   - Configurar network security config para HTTP (desarrollo)
+1. **Error de conexión - "cleartext communication not permitted"**
+   - ✅ Ya configurado: `network_security_config.xml` permite HTTP
+   - ✅ URL cambiada a `10.0.2.2:8000` para emulador
+   - Para dispositivo físico: usar IP de tu computadora (ej: `192.168.1.100:8000`)
 
-2. **Imágenes no cargan**
+2. **Error de conexión general**
+   - Verificar que el servidor backend esté corriendo en puerto 8000
+   - Verificar permisos de internet en AndroidManifest
+
+3. **Imágenes no cargan**
    - Verificar URLs de thumbnails
    - Comprobar conectividad de red
 
-3. **Tests fallan**
+4. **Tests fallan**
    - Verificar dependencias de testing
    - Configurar TestDispatcher correctamente
 

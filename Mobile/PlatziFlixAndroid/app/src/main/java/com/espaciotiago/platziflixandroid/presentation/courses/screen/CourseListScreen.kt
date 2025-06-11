@@ -18,10 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -54,20 +51,6 @@ fun CourseListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val pullToRefreshState = rememberPullToRefreshState()
-    
-    // Handle pull to refresh
-    if (pullToRefreshState.isRefreshing) {
-        LaunchedEffect(true) {
-            viewModel.handleEvent(CourseListUiEvent.RefreshCourses)
-        }
-    }
-    
-    LaunchedEffect(uiState.isRefreshing) {
-        if (!uiState.isRefreshing) {
-            pullToRefreshState.endRefresh()
-        }
-    }
     
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -95,23 +78,12 @@ fun CourseListScreen(
             )
         }
     ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .nestedScroll(pullToRefreshState.nestedScrollConnection)
-        ) {
-            CourseListContent(
-                uiState = uiState,
-                onCourseClick = onCourseClick,
-                onRetry = { viewModel.handleEvent(CourseListUiEvent.LoadCourses) },
-                modifier = Modifier.padding(innerPadding)
-            )
-            
-            PullToRefreshContainer(
-                state = pullToRefreshState,
-                modifier = Modifier.align(Alignment.TopCenter)
-            )
-        }
+        CourseListContent(
+            uiState = uiState,
+            onCourseClick = onCourseClick,
+            onRetry = { viewModel.handleEvent(CourseListUiEvent.LoadCourses) },
+            modifier = Modifier.padding(innerPadding)
+        )
     }
 }
 
