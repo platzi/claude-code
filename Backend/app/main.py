@@ -12,7 +12,7 @@ def root() -> dict[str, str]:
 
 
 @app.get("/health")
-def health() -> dict[str, str | bool]:
+def health() -> dict[str, str | bool | int]:
     """
     Health check endpoint that verifies:
     - Service status
@@ -22,18 +22,19 @@ def health() -> dict[str, str | bool]:
         "status": "ok",
         "service": settings.project_name,
         "version": settings.version,
-        "database": False
+        "database": False,
     }
-    
-    # Check database connectivity
+
+    # Check database connectivity and verify migration
     try:
         with engine.connect() as connection:
-            # Execute SELECT 1 to test database connection
-            result = connection.execute(text("SELECT 1"))
-            if result.fetchone():
-                health_status["database"] = True
+            # Execute COUNT on courses table to verify migration was executed
+            result = connection.execute(text("SELECT COUNT(*) FROM courses"))
+            count = result.fetchone()[0]
+            health_status["database"] = True
+            health_status["courses_count"] = count
     except Exception as e:
         health_status["status"] = "degraded"
         health_status["database_error"] = str(e)
-    
+
     return health_status

@@ -2,8 +2,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from typing import Generator
 
-from core.config import settings
-from models.base import Base
+from app.core.config import settings
+from app.models.base import Base
 
 # Create SQLAlchemy engine
 engine = create_engine(settings.database_url)
