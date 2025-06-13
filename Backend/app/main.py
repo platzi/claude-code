@@ -8,6 +8,13 @@ from app.services.course_service import CourseService
 app = FastAPI(title=settings.project_name, version=settings.version)
 
 
+def get_course_service(db: Session = Depends(get_db)) -> CourseService:
+    """
+    Dependency to get CourseService instance
+    """
+    return CourseService(db)
+
+
 @app.get("/")
 def root() -> dict[str, str]:
     return {"message": "Bienvenido a Platziflix API"}
@@ -48,22 +55,20 @@ def health() -> dict[str, str | bool | int]:
 
 
 @app.get("/courses")
-def get_courses(db: Session = Depends(get_db)) -> list:
+def get_courses(course_service: CourseService = Depends(get_course_service)) -> list:
     """
     Get all courses.
     Returns a list of courses with basic information: id, name, description, thumbnail, slug
     """
-    course_service = CourseService(db)
     return course_service.get_all_courses()
 
 
 @app.get("/courses/{slug}")
-def get_course_by_slug(slug: str, db: Session = Depends(get_db)) -> dict:
+def get_course_by_slug(slug: str, course_service: CourseService = Depends(get_course_service)) -> dict:
     """
     Get course details by slug.
     Returns course information including teachers and classes.
     """
-    course_service = CourseService(db)
     course = course_service.get_course_by_slug(slug)
     
     if not course:
