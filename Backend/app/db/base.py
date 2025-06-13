@@ -1,18 +1,15 @@
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from typing import Generator
 
-from app.core.config import settings
+from core.config import settings
+from models.base import Base
 
 # Create SQLAlchemy engine
 engine = create_engine(settings.database_url)
 
 # Create SessionLocal class for database sessions
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Create Base class for declarative models
-Base = declarative_base()
 
 
 # Dependency function for getting database session
