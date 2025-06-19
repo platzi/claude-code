@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: platziflix_user
+      POSTGRES_PASSWORD: platziflix_password
+      POSTGRES_DB: platziflix_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app/app
+      - ./specs:/app/specs
+    environment:
+      DATABASE_URL: postgresql://platziflix_user:platziflix_password@db:5432/platziflix_db
+    depends_on:
+      - db
+
+volumes:
+  postgres_data: 

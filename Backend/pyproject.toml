@@ -1,0 +1,22 @@
+[project]
+name = "platziflix-backend"
+version = "0.1.0"
+description = "Backend de Platziflix: plataforma de cursos online con FastAPI."
+authors = [
+    { name = "Equipo Platziflix", email = "dev@platziflix.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "sqlalchemy>=2.0.0",
+    "psycopg2-binary>=2.9.0",
+    "pydantic-settings>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "alembic>=1.13.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+]
