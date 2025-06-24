@@ -1,6 +1,7 @@
 import styles from "./page.module.scss";
 import { Course } from "@/types";
 import { Course as CourseComponent } from "@/components/Course/Course";
+import Link from "next/link";
 
 async function getCourses(): Promise<Course[]> {
   const res = await fetch("http://localhost:8000/courses", { cache: "no-store" });
@@ -29,14 +30,15 @@ export default async function Home() {
       <main className={styles.main}>
         <div className={styles.coursesGrid}>
           {courses.map((course) => (
-            <CourseComponent
-              key={course.id}
-              id={course.id}
-              title={course.title}
-              teacher={course.teacher}
-              duration={course.duration}
-              thumbnail={course.thumbnail}
-            />
+            <Link href={`/course/${course.slug}`} key={course.id}>
+              <CourseComponent
+                id={course.id}
+                title={course.title}
+                teacher={course.teacher}
+                duration={course.duration}
+                thumbnail={course.thumbnail}
+              />
+            </Link>
           ))}
         </div>
       </main>
