@@ -2439,13 +2439,13 @@ pytest app/tests/ -v --lf
 - [x] Verificar constraints: `\d+ course_ratings`
 
 ### FASE 2 - Models ✓
-- [ ] Crear archivo `models/course_rating.py`
-- [ ] Implementar modelo `CourseRating` con BaseModel
-- [ ] Agregar método `to_dict()` en CourseRating
-- [ ] Actualizar `models/course.py` con relationship
-- [ ] Agregar properties `average_rating` y `total_ratings` en Course
-- [ ] Actualizar `models/__init__.py` con nuevos imports
-- [ ] Verificar imports: `python -c "from app.models import CourseRating"`
+- [x] Crear archivo `models/course_rating.py`
+- [x] Implementar modelo `CourseRating` con BaseModel
+- [x] Agregar método `to_dict()` en CourseRating
+- [x] Actualizar `models/course.py` con relationship
+- [x] Agregar properties `average_rating` y `total_ratings` en Course
+- [x] Actualizar `models/__init__.py` con nuevos imports
+- [x] Verificar imports: `python -c "from app.models import CourseRating"`
 
 ### FASE 3 - Service Layer ✓
 - [ ] Agregar imports necesarios en `course_service.py`
