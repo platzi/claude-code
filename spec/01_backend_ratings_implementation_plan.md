@@ -2448,36 +2448,36 @@ pytest app/tests/ -v --lf
 - [x] Verificar imports: `python -c "from app.models import CourseRating"`
 
 ### FASE 3 - Service Layer ✓
-- [ ] Agregar imports necesarios en `course_service.py`
-- [ ] Implementar `get_course_ratings()`
-- [ ] Implementar `add_course_rating()` (upsert logic)
-- [ ] Implementar `update_course_rating()`
-- [ ] Implementar `delete_course_rating()` (soft delete)
-- [ ] Implementar `get_user_course_rating()`
-- [ ] Implementar `get_course_rating_stats()` (agregaciones SQL)
-- [ ] Actualizar `get_course_by_slug()` para incluir rating stats
+- [x] Agregar imports necesarios en `course_service.py`
+- [x] Implementar `get_course_ratings()`
+- [x] Implementar `add_course_rating()` (upsert logic)
+- [x] Implementar `update_course_rating()`
+- [x] Implementar `delete_course_rating()` (soft delete)
+- [x] Implementar `get_user_course_rating()`
+- [x] Implementar `get_course_rating_stats()` (agregaciones SQL)
+- [x] Actualizar `get_course_by_slug()` para incluir rating stats
 
 ### FASE 4 - API Endpoints ✓
-- [ ] Crear directorio `schemas/`
-- [ ] Crear `schemas/rating.py` con Pydantic models
-- [ ] Agregar imports en `main.py`
-- [ ] Implementar `POST /courses/{course_id}/ratings`
-- [ ] Implementar `GET /courses/{course_id}/ratings`
-- [ ] Implementar `GET /courses/{course_id}/ratings/stats`
-- [ ] Implementar `GET /courses/{course_id}/ratings/user/{user_id}`
-- [ ] Implementar `PUT /courses/{course_id}/ratings/{user_id}`
-- [ ] Implementar `DELETE /courses/{course_id}/ratings/{user_id}`
-- [ ] Actualizar documentación OpenAPI con tags
-- [ ] Probar endpoints en Swagger UI: `http://localhost:8000/docs`
+- [x] Crear directorio `schemas/`
+- [x] Crear `schemas/rating.py` con Pydantic models
+- [x] Agregar imports en `main.py`
+- [x] Implementar `POST /courses/{course_id}/ratings`
+- [x] Implementar `GET /courses/{course_id}/ratings`
+- [x] Implementar `GET /courses/{course_id}/ratings/stats`
+- [x] Implementar `GET /courses/{course_id}/ratings/user/{user_id}`
+- [x] Implementar `PUT /courses/{course_id}/ratings/{user_id}`
+- [x] Implementar `DELETE /courses/{course_id}/ratings/{user_id}`
+- [x] Actualizar documentación OpenAPI con tags
+- [x] Probar endpoints en Swagger UI: `http://localhost:8000/docs`
 
 ### FASE 5 - Testing ✓
-- [ ] Crear directorio `tests/` si no existe
-- [ ] Crear `test_course_rating_service.py` (unit tests)
-- [ ] Crear `test_rating_endpoints.py` (integration tests)
-- [ ] Crear `test_rating_db_constraints.py` (DB tests)
-- [ ] Ejecutar tests: `pytest app/tests/ -v`
-- [ ] Verificar coverage: `pytest --cov=app`
-- [ ] Todos los tests pasan ✓
+- [x] Crear directorio `tests/` si no existe
+- [x] Crear `test_course_rating_service.py` (unit tests)
+- [x] Crear `test_rating_endpoints.py` (integration tests)
+- [x] Crear `test_rating_db_constraints.py` (DB tests)
+- [x] Ejecutar tests: `pytest app/tests/ -v`
+- [x] Verificar coverage: `pytest --cov=app`
+- [x] Todos los tests pasan ✓ (39 passed, 1 skipped)
 
 ---
 

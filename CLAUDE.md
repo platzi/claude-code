@@ -152,3 +152,4 @@ cd Backend && make logs
 ```
 
 Esta memoria contiene toda la información necesaria para continuar el desarrollo del proyecto Platziflix.
+- Cualquier comando que necesites ejecutar para el Backend debe ser dentro del contenedor de docker API, antes de ejecutarlo certifica que esté funcionando el contenedor y revisa el archivo makefile con los comandos que existen y úsalos
