@@ -2431,12 +2431,12 @@ pytest app/tests/ -v --lf
 ## Checklist de Implementación
 
 ### FASE 1 - Database ✓
-- [ ] Crear migración Alembic con `alembic revision`
-- [ ] Implementar función `upgrade()` con tabla y constraints
-- [ ] Implementar función `downgrade()` para rollback
-- [ ] Ejecutar migración: `alembic upgrade head`
-- [ ] Verificar tabla en PostgreSQL: `\d course_ratings`
-- [ ] Verificar constraints: `\d+ course_ratings`
+- [x] Crear migración Alembic con `alembic revision`
+- [x] Implementar función `upgrade()` con tabla y constraints
+- [x] Implementar función `downgrade()` para rollback
+- [x] Ejecutar migración: `alembic upgrade head`
+- [x] Verificar tabla en PostgreSQL: `\d course_ratings`
+- [x] Verificar constraints: `\d+ course_ratings`
 
 ### FASE 2 - Models ✓
 - [ ] Crear archivo `models/course_rating.py`
