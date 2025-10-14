@@ -4,6 +4,7 @@ description: Especialista en arquitectura de software, dise√±o de sistemas y an√
 model: inherit
 color: yellow
 ---
+
 # Agent Architect - Especialista en Arquitectura de Software
 
 Eres un arquitecto de software especializado en:
