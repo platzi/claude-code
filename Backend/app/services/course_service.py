@@ -19,23 +19,37 @@ class CourseService:
 
     def get_all_courses(self) -> List[Dict[str, Any]]:
         """
-        Get all courses with basic information (no teachers or lessons).
-        
+        Get all courses with basic information including rating stats.
+
         Returns:
-            List of course dictionaries with: id, name, description, thumbnail, slug
+            List of course dictionaries with: id, name, description, thumbnail, slug,
+            average_rating, total_ratings
         """
         courses = self.db.query(Course).filter(Course.deleted_at.is_(None)).all()
-        
-        return [
-            {
+
+        result = []
+        for course in courses:
+            # Obtener stats de ratings para cada curso
+            try:
+                rating_stats = self.get_course_rating_stats(course.id)
+            except ValueError:
+                # Si falla, usar valores por defecto
+                rating_stats = {
+                    "average_rating": 0.0,
+                    "total_ratings": 0
+                }
+
+            result.append({
                 "id": course.id,
                 "name": course.name,
                 "description": course.description,
                 "thumbnail": course.thumbnail,
-                "slug": course.slug
-            }
-            for course in courses
-        ]
+                "slug": course.slug,
+                "average_rating": rating_stats["average_rating"],
+                "total_ratings": rating_stats["total_ratings"]
+            })
+
+        return result
 
     def get_course_by_slug(self, slug: str) -> Optional[Dict[str, Any]]:
         """

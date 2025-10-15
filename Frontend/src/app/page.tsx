@@ -9,13 +9,7 @@ async function getCourses(): Promise<Course[]> {
     throw new Error("Failed to fetch courses");
   }
   const data = await res.json();
-
-  // Mock de ratings para visualizar el componente StarRating
-  return data.map((course: Course, index: number) => ({
-    ...course,
-    average_rating: 3.5 + (index % 3) * 0.5, // Genera ratings entre 3.5 y 4.5
-    total_ratings: 10 + (index * 15) // Genera diferentes cantidades de ratings
-  }));
+  return data;
 }
 
 export default async function Home() {
