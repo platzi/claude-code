@@ -4,7 +4,7 @@ import Link from "next/link";
 import styles from "./page.module.scss";
 
 interface ClassPageProps {
-  params: { class_id: string };
+  params: Promise<{ class_id: string }>;
 }
 
 async function getClassData(class_id: string): Promise<Class> {
@@ -14,7 +14,8 @@ async function getClassData(class_id: string): Promise<Class> {
 }
 
 export default async function ClassPage({ params }: ClassPageProps) {
-  const classData = await getClassData(params.class_id);
+  const { class_id } = await params;
+  const classData = await getClassData(class_id);
 
   // Asumimos que classData tiene un campo 'slug' para el curso, si no, ajustar aquí
   // Si no hay relación directa, el botón puede regresar a /course

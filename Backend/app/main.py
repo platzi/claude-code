@@ -118,6 +118,29 @@ def get_course_by_slug(slug: str, course_service: CourseService = Depends(get_co
     return course
 
 
+@app.get("/classes/{class_id}", tags=["courses"])
+def get_class_by_id(class_id: int, db: Session = Depends(get_db)) -> dict:
+    """
+    Get lesson/class details by ID.
+    Returns lesson information including video URL.
+    """
+    from app.models import Lesson
+
+    lesson = db.query(Lesson).filter(Lesson.id == class_id).first()
+
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Class not found")
+
+    return {
+        "id": lesson.id,
+        "title": lesson.name,
+        "description": lesson.description,
+        "slug": lesson.slug,
+        "video": lesson.video_url,
+        "duration": 0  # TODO: agregar duración si está disponible
+    }
+
+
 # ==================== RATING ENDPOINTS ====================
 
 @app.post(

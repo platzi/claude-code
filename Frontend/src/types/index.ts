@@ -1,9 +1,8 @@
 // Course types
 export interface Course {
   id: number;
-  title: string;
-  teacher: string;
-  duration: number;
+  name: string;
+  description: string;
   thumbnail: string;
   slug: string;
 }
