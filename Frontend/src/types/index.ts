@@ -5,6 +5,9 @@ export interface Course {
   description: string;
   thumbnail: string;
   slug: string;
+  // Campos opcionales de rating
+  average_rating?: number; // 0.0 - 5.0
+  total_ratings?: number; // Cantidad de ratings
 }
 
 // Class types

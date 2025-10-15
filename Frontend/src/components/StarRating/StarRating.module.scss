@@ -1,0 +1,79 @@
+/**
+ * StarRating Component Styles
+ * Estilos para el componente de calificación con estrellas
+ */
+
+.starRating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  .stars {
+    display: flex;
+    gap: 0.125rem;
+  }
+
+  .star {
+    display: inline-flex;
+    transition: transform 0.2s ease, color 0.2s ease;
+    color: var(--star-empty-color, #4a4a4a);
+
+    &.full {
+      color: var(--star-full-color, #ffc107);
+    }
+
+    &.half {
+      color: var(--star-half-color, #ffc107);
+    }
+
+    &.empty {
+      color: var(--star-empty-color, #4a4a4a);
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  .count {
+    font-size: 0.875em;
+    color: var(--text-secondary, #999);
+    white-space: nowrap;
+  }
+
+  // Size variants
+  &.small {
+    .star svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .count {
+      font-size: 0.75rem;
+    }
+  }
+
+  &.medium {
+    .star svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .count {
+      font-size: 0.875rem;
+    }
+  }
+
+  &.large {
+    .star svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .count {
+      font-size: 1rem;
+    }
+  }
+}
