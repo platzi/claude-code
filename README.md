@@ -3,6 +3,9 @@
 
 - Eduardo Alvarez
 
+
+readme change
+
 ## Distribución del carpetas
 
 - Backend
