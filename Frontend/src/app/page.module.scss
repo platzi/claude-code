@@ -80,18 +80,26 @@
 }
 
 .main {
-  max-width: 1100px;
+  max-width: 1440px;
   margin: 0 auto;
+  padding: 0 2rem;
   z-index: 2;
   position: relative;
 }
 
 .coursesGrid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2.5rem;
+  display: grid;
+  grid-template-columns: repeat(3, 380px);
+  gap: 2rem;
   justify-content: center;
-  align-items: flex-start;
+
+  @media (max-width: 1260px) {
+    grid-template-columns: repeat(2, 380px);
+  }
+
+  @media (max-width: 840px) {
+    grid-template-columns: 380px;
+  }
 }
 
 .courseCard {

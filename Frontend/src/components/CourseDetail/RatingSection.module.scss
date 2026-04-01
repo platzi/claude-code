@@ -1,0 +1,60 @@
+/**
+ * RatingSection Component Styles
+ */
+
+.ratingSection {
+  margin-top: 2rem;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+
+  .userRating {
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+    .title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .loadingText {
+      margin-top: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary, #999);
+    }
+
+    .errorText {
+      margin-top: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      background: rgba(244, 67, 54, 0.1);
+      color: #f44336;
+      border-radius: 4px;
+      font-size: 0.875rem;
+    }
+
+    .successText {
+      margin-top: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      background: rgba(76, 175, 80, 0.1);
+      color: #4caf50;
+      border-radius: 4px;
+      font-size: 0.875rem;
+    }
+  }
+
+  .ratingsStats {
+    .statsTitle {
+      font-size: 1rem;
+      font-weight: 500;
+      margin-bottom: 0.75rem;
+    }
+
+    .statsDescription {
+      margin-top: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary, #999);
+    }
+  }
+}

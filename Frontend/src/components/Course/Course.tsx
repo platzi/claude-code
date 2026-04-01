@@ -1,11 +1,11 @@
 import styles from "./Course.module.scss";
 import { Course as CourseType } from "@/types";
 import { StarRating } from "@/components/StarRating/StarRating";
+import { CourseThumbnail } from "./CourseThumbnail";
 
 type CourseProps = Omit<CourseType, "slug">;
 
 export const Course = ({
-  id,
   name,
   description,
   thumbnail,
@@ -15,14 +15,13 @@ export const Course = ({
   return (
     <article className={styles.courseCard}>
       <div className={styles.thumbnailContainer}>
-        <img src={thumbnail} alt={name} className={styles.thumbnail} />
+        <CourseThumbnail src={thumbnail} alt={name} name={name} />
       </div>
       <div className={styles.courseInfo}>
         <h2 className={styles.courseTitle}>{name}</h2>
         <p className={styles.description}>{description}</p>
 
-        {/* Rating Section - solo mostrar si existe average_rating */}
-        {typeof average_rating === 'number' && (
+        {typeof average_rating === 'number' && average_rating > 0 && (
           <div className={styles.ratingContainer}>
             <StarRating
               rating={average_rating}
@@ -31,6 +30,7 @@ export const Course = ({
               size="small"
               readonly={true}
             />
+            <span className={styles.ratingValue}>{average_rating.toFixed(1)}</span>
           </div>
         )}
       </div>

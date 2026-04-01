@@ -453,4 +453,27 @@ describe('StarRating Component', () => {
 
 ---
 
+## Apéndice: ¿Qué es un LLM?
+
+Un **Large Language Model (LLM)** es un modelo de inteligencia artificial entrenado para predecir la siguiente palabra (token) más probable dado un contexto.
+
+**Ejemplo mínimo:**
+
+Dado el texto: `"El cielo es de color"`
+
+El modelo asigna probabilidades a los posibles tokens siguientes:
+
+```
+"azul"     → 72%
+"gris"     → 18%
+"rojo"     → 6%
+"verde"    → 4%
+```
+
+Elige `"azul"` → el texto pasa a ser: `"El cielo es de color azul"`
+
+Repite el proceso con el nuevo contexto, generando token por token hasta producir una respuesta completa. No "entiende" el texto — aplica patrones estadísticos aprendidos durante el entrenamiento sobre enormes cantidades de texto.
+
+---
+
 *Este plan sigue estrictamente los patrones arquitecturales existentes de Platziflix y está diseñado para ser implementado incrementalmente, manteniendo la estabilidad del sistema en cada fase.*

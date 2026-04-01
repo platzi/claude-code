@@ -3,8 +3,8 @@
  * Tests unitarios para el componente de calificación con estrellas
  */
 
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { StarRating } from '../StarRating';
 
@@ -182,6 +182,134 @@ describe('StarRating Component', () => {
       render(<StarRating rating={4.5} readonly={true} showCount={true} totalRatings={50} />);
 
       expect(screen.getByText('(50)')).toBeInTheDocument();
+    });
+
+    it('sin onRatingChange no renderiza botones aunque readonly sea false', () => {
+      const { container } = render(<StarRating rating={3} readonly={false} />);
+
+      const buttons = container.querySelectorAll('button');
+      expect(buttons).toHaveLength(0);
+    });
+  });
+
+  describe('Interactive Mode', () => {
+    it('renderiza 5 botones cuando se provee onRatingChange', () => {
+      const handleChange = vi.fn();
+      render(<StarRating rating={0} onRatingChange={handleChange} />);
+
+      const buttons = screen.getAllByRole('button');
+      expect(buttons).toHaveLength(5);
+    });
+
+    it('usa role="group" en modo interactivo', () => {
+      const handleChange = vi.fn();
+      render(<StarRating rating={0} onRatingChange={handleChange} />);
+
+      expect(screen.getByRole('group')).toBeInTheDocument();
+    });
+
+    it('llama onRatingChange con el valor correcto al hacer click', () => {
+      const handleChange = vi.fn();
+      render(<StarRating rating={0} onRatingChange={handleChange} />);
+
+      const buttons = screen.getAllByRole('button');
+      fireEvent.click(buttons[2]); // 3ra estrella
+
+      expect(handleChange).toHaveBeenCalledWith(3);
+      expect(handleChange).toHaveBeenCalledTimes(1);
+    });
+
+    it('llama onRatingChange con 5 al hacer click en la última estrella', () => {
+      const handleChange = vi.fn();
+      render(<StarRating rating={0} onRatingChange={handleChange} />);
+
+      const buttons = screen.getAllByRole('button');
+      fireEvent.click(buttons[4]);
+
+      expect(handleChange).toHaveBeenCalledWith(5);
+    });
+
+    it('NO llama onRatingChange cuando readonly=true aunque tenga callback', () => {
+      const handleChange = vi.fn();
+      const { container } = render(
+        <StarRating rating={3} onRatingChange={handleChange} readonly={true} />
+      );
+
+      // readonly=true debe forzar modo display (sin botones)
+      const buttons = container.querySelectorAll('button');
+      expect(buttons).toHaveLength(0);
+      expect(handleChange).not.toHaveBeenCalled();
+    });
+
+    it('NO llama onRatingChange cuando disabled=true', () => {
+      const handleChange = vi.fn();
+      render(<StarRating rating={0} onRatingChange={handleChange} disabled={true} />);
+
+      const buttons = screen.getAllByRole('button');
+      fireEvent.click(buttons[2]);
+
+      expect(handleChange).not.toHaveBeenCalled();
+    });
+
+    it('los botones tienen aria-label con el número de estrella', () => {
+      const handleChange = vi.fn();
+      render(<StarRating rating={0} onRatingChange={handleChange} />);
+
+      expect(screen.getByRole('button', { name: 'Rate 1 stars' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Rate 3 stars' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Rate 5 stars' })).toBeInTheDocument();
+    });
+
+    it('los botones están disabled cuando disabled=true', () => {
+      const handleChange = vi.fn();
+      render(<StarRating rating={0} onRatingChange={handleChange} disabled={true} />);
+
+      const buttons = screen.getAllByRole('button');
+      buttons.forEach((btn) => {
+        expect(btn).toBeDisabled();
+      });
+    });
+
+    it('teclado: Enter selecciona el rating de la estrella enfocada', () => {
+      const handleChange = vi.fn();
+      render(<StarRating rating={0} onRatingChange={handleChange} />);
+
+      const buttons = screen.getAllByRole('button');
+      fireEvent.keyDown(buttons[2], { key: 'Enter' }); // 3ra estrella
+
+      expect(handleChange).toHaveBeenCalledWith(3);
+    });
+
+    it('teclado: Space selecciona el rating de la estrella enfocada', () => {
+      const handleChange = vi.fn();
+      render(<StarRating rating={0} onRatingChange={handleChange} />);
+
+      const buttons = screen.getAllByRole('button');
+      fireEvent.keyDown(buttons[4], { key: ' ' }); // 5ta estrella
+
+      expect(handleChange).toHaveBeenCalledWith(5);
+    });
+
+    it('teclado: ArrowRight mueve el foco a la siguiente estrella', () => {
+      const handleChange = vi.fn();
+      render(<StarRating rating={0} onRatingChange={handleChange} />);
+
+      const buttons = screen.getAllByRole('button');
+      buttons[0].focus();
+      fireEvent.keyDown(buttons[0], { key: 'ArrowRight' });
+
+      expect(document.activeElement).toBe(buttons[1]);
+    });
+
+    it('teclado: ArrowLeft mueve el foco a la estrella anterior', () => {
+      const handleChange = vi.fn();
+      render(<StarRating rating={0} onRatingChange={handleChange} />);
+
+      const buttons = screen.getAllByRole('button');
+      buttons[2].focus();
+      fireEvent.keyDown(buttons[2], { key: 'ArrowLeft' });
+
+      expect(document.activeElement).toBe(buttons[1]);
     });
   });
 });

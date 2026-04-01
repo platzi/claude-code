@@ -6,23 +6,16 @@ import { Course } from "../Course";
 describe("Course Component", () => {
   const mockCourse = {
     id: 1,
-    title: "React Fundamentals",
-    teacher: "John Doe",
-    duration: 120,
+    name: "React Fundamentals",
+    description: "Learn React from scratch",
     thumbnail: "https://example.com/thumbnail.jpg",
   };
 
   it("renders course information correctly", () => {
     render(<Course {...mockCourse} />);
 
-    // Check if title is rendered
-    expect(screen.getByText(mockCourse.title)).toBeDefined();
-
-    // Check if teacher information is rendered
-    expect(screen.getByText(`Profesor: ${mockCourse.teacher}`)).toBeDefined();
-
-    // Check if duration is rendered
-    expect(screen.getByText(`Duración: ${mockCourse.duration} minutos`)).toBeDefined();
+    expect(screen.getByText(mockCourse.name)).toBeDefined();
+    expect(screen.getByText(mockCourse.description)).toBeDefined();
   });
 
   it("renders thumbnail with correct alt text", () => {
@@ -30,20 +23,29 @@ describe("Course Component", () => {
 
     const thumbnail = screen.getByRole("img");
     expect(thumbnail).toHaveAttribute("src", mockCourse.thumbnail);
-    expect(thumbnail).toHaveAttribute("alt", mockCourse.title);
+    expect(thumbnail).toHaveAttribute("alt", mockCourse.name);
   });
 
   it("renders with correct structure", () => {
     const { container } = render(<Course {...mockCourse} />);
 
-    // Check if the main article exists
     expect(container.querySelector("article")).toBeDefined();
-
-    // Check if the thumbnail container exists
     expect(container.querySelector("div > img")).toBeDefined();
-
-    // Check if the course info section exists
     expect(container.querySelector("div > h2")).toBeDefined();
     expect(container.querySelector("div > p")).toBeDefined();
+  });
+
+  it("renders StarRating when average_rating is provided", () => {
+    render(<Course {...mockCourse} average_rating={4.2} total_ratings={10} />);
+
+    const ratingContainer = screen.getByRole("img", { name: /rating/i });
+    expect(ratingContainer).toBeInTheDocument();
+  });
+
+  it("does not render StarRating when average_rating is not provided", () => {
+    render(<Course {...mockCourse} />);
+
+    const ratingContainer = screen.queryByRole("img", { name: /rating/i });
+    expect(ratingContainer).not.toBeInTheDocument();
   });
 });

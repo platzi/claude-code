@@ -2487,6 +2487,7 @@ pytest app/tests/ -v --lf
 
 ```bash
 # Conectar a PostgreSQL
+
 docker exec -it [container_id] psql -U platziflix_user -d platziflix_db
 
 # Verificar tabla

@@ -1,16 +1,22 @@
 /**
  * StarRating Component
- * Componente de calificación con estrellas (modo readonly para lista de cursos)
+ * Componente de calificación con estrellas.
+ * Soporta modo readonly (display) e interactivo (submit de rating).
  */
 
+'use client';
+
+import React, { useState, useRef } from 'react';
 import styles from './StarRating.module.scss';
 
 interface StarRatingProps {
   rating: number; // 0-5, puede ser decimal
+  onRatingChange?: (rating: number) => void; // Callback para modo interactivo
   totalRatings?: number; // Número total de ratings
   showCount?: boolean; // Mostrar contador de ratings
   size?: 'small' | 'medium' | 'large'; // Tamaño visual
   readonly?: boolean; // Modo solo lectura
+  disabled?: boolean; // Deshabilitar interacción (ej: durante API call)
   className?: string; // Clase CSS adicional
 }
 
@@ -59,26 +65,106 @@ const StarIcon = ({ fillState }: StarIconProps) => {
  */
 export const StarRating = ({
   rating,
+  onRatingChange,
   totalRatings = 0,
   showCount = false,
   size = 'medium',
   readonly = false,
+  disabled = false,
   className = '',
 }: StarRatingProps) => {
+  const [hoverRating, setHoverRating] = useState(0);
+  const starRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  // Modo interactivo: solo cuando hay callback y no es readonly
+  const isInteractive = !readonly && !!onRatingChange;
+
   /**
-   * Determina el estado de relleno de cada estrella
+   * Determina el estado de relleno de cada estrella.
+   * En modo interactivo, prioriza hoverRating para feedback visual.
    */
   const getStarFillState = (starIndex: number): 'empty' | 'half' | 'full' => {
-    const currentRating = Math.max(0, Math.min(5, rating)); // Clamp 0-5
+    const displayRating =
+      isInteractive && hoverRating > 0
+        ? hoverRating
+        : Math.max(0, Math.min(5, rating));
 
-    if (currentRating >= starIndex) return 'full';
-    if (currentRating >= starIndex - 0.5) return 'half';
+    if (displayRating >= starIndex) return 'full';
+    if (displayRating >= starIndex - 0.5) return 'half';
     return 'empty';
   };
 
-  // Formatear el rating para mostrar (1 decimal)
+  const handleMouseEnter = (star: number) => {
+    if (disabled) return;
+    setHoverRating(star);
+  };
+
+  const handleMouseLeave = () => {
+    setHoverRating(0);
+  };
+
+  const handleClick = (star: number) => {
+    if (disabled) return;
+    onRatingChange?.(star);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, star: number) => {
+    if (disabled) return;
+
+    if (e.key === 'ArrowRight' && star < 5) {
+      e.preventDefault();
+      starRefs.current[star]?.focus(); // star es 1-based; refs[star] = siguiente estrella
+    } else if (e.key === 'ArrowLeft' && star > 1) {
+      e.preventDefault();
+      starRefs.current[star - 2]?.focus(); // refs[star-2] = estrella anterior
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onRatingChange?.(star);
+    } else if (e.key === 'Escape') {
+      setHoverRating(0);
+    }
+  };
+
   const formattedRating = rating.toFixed(1);
 
+  // ── Modo interactivo ──────────────────────────────────────────────────────
+  if (isInteractive) {
+    return (
+      <div
+        className={`${styles.starRating} ${styles[size]} ${className}`}
+        role="group"
+        aria-label={`Rating: ${formattedRating} out of 5 stars`}
+        onMouseLeave={handleMouseLeave}
+      >
+        <div className={styles.stars}>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              ref={(el) => { starRefs.current[star - 1] = el; }}
+              className={`${styles.star} ${styles[getStarFillState(star)]}`}
+              onClick={() => handleClick(star)}
+              onMouseEnter={() => handleMouseEnter(star)}
+              onKeyDown={(e) => handleKeyDown(e, star)}
+              disabled={disabled}
+              aria-label={`Rate ${star} stars`}
+              aria-pressed={rating === star}
+            >
+              <StarIcon fillState={getStarFillState(star)} />
+            </button>
+          ))}
+        </div>
+
+        {showCount && totalRatings > 0 && (
+          <span className={styles.count} aria-label={`${totalRatings} ratings`}>
+            ({totalRatings})
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  // ── Modo readonly / display ───────────────────────────────────────────────
   return (
     <div
       className={`${styles.starRating} ${styles[size]} ${className}`}
@@ -99,7 +185,6 @@ export const StarRating = ({
         ))}
       </div>
 
-      {/* Contador de ratings (opcional) */}
       {showCount && totalRatings > 0 && (
         <span className={styles.count} aria-label={`${totalRatings} ratings`}>
           ({totalRatings})

@@ -10,7 +10,7 @@ export interface Course {
   total_ratings?: number; // Cantidad de ratings
 }
 
-// Class types
+// Class types (shape returned by /classes/{class_id} endpoint)
 export interface Class {
   id: number;
   title: string;
@@ -20,10 +20,20 @@ export interface Class {
   slug: string;
 }
 
-// Course Detail type
+// Class summary shape returned inside /courses/{slug} response
+export interface CourseClass {
+  id: number;
+  name: string;
+  description: string;
+  slug: string;
+}
+
+// Course Detail type (shape returned by /courses/{slug} endpoint)
 export interface CourseDetail extends Course {
   description: string;
-  classes: Class[];
+  classes: CourseClass[];
+  teacher_id: number[];
+  rating_distribution?: Record<string, number>;
 }
 
 // Progress types
