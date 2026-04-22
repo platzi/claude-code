@@ -1,49 +1,67 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { Course } from "../Course";
 
-describe("Course Component", () => {
-  const mockCourse = {
-    id: 1,
-    title: "React Fundamentals",
-    teacher: "John Doe",
-    duration: 120,
-    thumbnail: "https://example.com/thumbnail.jpg",
-  };
+vi.mock("@/components/StarRating/StarRating", () => ({
+  StarRating: ({
+    rating,
+    totalRatings,
+  }: {
+    rating: number;
+    totalRatings?: number;
+    showCount?: boolean;
+    size?: string;
+    readonly?: boolean;
+  }) => (
+    <div
+      data-testid="star-rating"
+      role="img"
+      aria-label={`Rating: ${rating} out of 5 stars, ${totalRatings ?? 0} ratings`}
+    >
+      {rating}
+    </div>
+  ),
+}));
 
-  it("renders course information correctly", () => {
-    render(<Course {...mockCourse} />);
+const baseCourse = {
+  id: 1,
+  name: "React Fundamentals",
+  description: "Learn React from scratch",
+  thumbnail: "https://example.com/thumbnail.jpg",
+};
 
-    // Check if title is rendered
-    expect(screen.getByText(mockCourse.title)).toBeDefined();
+describe("Course", () => {
+  it("renders course name, description, and thumbnail", () => {
+    render(<Course {...baseCourse} />);
 
-    // Check if teacher information is rendered
-    expect(screen.getByText(`Profesor: ${mockCourse.teacher}`)).toBeDefined();
-
-    // Check if duration is rendered
-    expect(screen.getByText(`Duración: ${mockCourse.duration} minutos`)).toBeDefined();
+    expect(screen.getByText(baseCourse.name)).toBeInTheDocument();
+    expect(screen.getByText(baseCourse.description)).toBeInTheDocument();
+    expect(screen.getByAltText(baseCourse.name)).toHaveAttribute(
+      "src",
+      baseCourse.thumbnail
+    );
   });
 
-  it("renders thumbnail with correct alt text", () => {
-    render(<Course {...mockCourse} />);
+  it("renders an article element", () => {
+    const { container } = render(<Course {...baseCourse} />);
 
-    const thumbnail = screen.getByRole("img");
-    expect(thumbnail).toHaveAttribute("src", mockCourse.thumbnail);
-    expect(thumbnail).toHaveAttribute("alt", mockCourse.title);
+    expect(container.querySelector("article")).toBeInTheDocument();
   });
 
-  it("renders with correct structure", () => {
-    const { container } = render(<Course {...mockCourse} />);
+  it("shows StarRating when average_rating is provided", () => {
+    render(
+      <Course {...baseCourse} average_rating={4.2} total_ratings={15} />
+    );
 
-    // Check if the main article exists
-    expect(container.querySelector("article")).toBeDefined();
+    expect(screen.getByRole("img", { name: /Rating:/i })).toBeInTheDocument();
+  });
 
-    // Check if the thumbnail container exists
-    expect(container.querySelector("div > img")).toBeDefined();
+  it("does not show rating section when average_rating is undefined", () => {
+    render(<Course {...baseCourse} />);
 
-    // Check if the course info section exists
-    expect(container.querySelector("div > h2")).toBeDefined();
-    expect(container.querySelector("div > p")).toBeDefined();
+    expect(
+      screen.queryByRole("img", { name: /Rating:/i })
+    ).not.toBeInTheDocument();
   });
 });

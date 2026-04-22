@@ -140,7 +140,7 @@ async function getUserRating(
   courseId: number,
   userId: number
 ): Promise<CourseRating | null> {
-  const url = `${API_BASE_URL}/courses/${courseId}/ratings/${userId}`;
+  const url = `${API_BASE_URL}/courses/${courseId}/ratings/user/${userId}`;
 
   try {
     const response = await fetchWithTimeout(url, {
@@ -150,10 +150,12 @@ async function getUserRating(
       },
     });
 
+    // 204 = usuario no ha calificado aún
+    if (response.status === 204) return null;
+
     return await handleApiResponse<CourseRating>(response);
   } catch (error) {
-    // Si el usuario no ha calificado (404), retornar null
-    if (error instanceof ApiError && error.status === 404) {
+    if (error instanceof ApiError && (error.status === 404 || error.status === 204)) {
       return null;
     }
     throw error;

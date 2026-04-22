@@ -23,6 +23,7 @@ export interface RatingRequest {
 export interface RatingStats {
   average_rating: number; // 0.0 - 5.0
   total_ratings: number; // Cantidad total
+  rating_distribution?: Record<number, number>; // { 1: count, 2: count, ... 5: count }
 }
 
 // Estados de UI para operaciones de rating

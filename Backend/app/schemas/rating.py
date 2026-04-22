@@ -2,7 +2,7 @@
 Pydantic schemas for course rating requests and responses.
 Provides validation and serialization for API endpoints.
 """
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import Dict
 
 
@@ -47,8 +47,7 @@ class RatingResponse(BaseModel):
     created_at: str
     updated_at: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RatingStatsResponse(BaseModel):
@@ -72,20 +71,19 @@ class RatingStatsResponse(BaseModel):
         description="Count of ratings per value (1-5)"
     )
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "average_rating": 4.35,
-                "total_ratings": 142,
-                "rating_distribution": {
-                    1: 5,
-                    2: 10,
-                    3: 25,
-                    4: 50,
-                    5: 52
-                }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "average_rating": 4.35,
+            "total_ratings": 142,
+            "rating_distribution": {
+                1: 5,
+                2: 10,
+                3: 25,
+                4: 50,
+                5: 52
             }
         }
+    })
 
 
 class ErrorResponse(BaseModel):
