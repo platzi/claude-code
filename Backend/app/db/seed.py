@@ -6,7 +6,7 @@ This script creates sample data for testing and development.
 from datetime import datetime
 from sqlalchemy.orm import Session
 from app.db.base import SessionLocal
-from app.models import Teacher, Course, Lesson, course_teachers
+from app.models import Teacher, Course, Lesson, CourseRating, course_teachers
 from app.core.config import settings
 
 
@@ -144,10 +144,35 @@ def create_sample_data():
 
         db.commit()
 
+        # Create sample ratings: (course, [(user_id, rating), ...]).
+        # One active rating per user and course (uq_course_ratings_active_user_course).
+        # user 1 (DEMO_USER_ID sugerido en el frontend) no califica el curso 3,
+        # para poder probar tanto "ya calificado" como "sin calificar".
+        ratings_data = [
+            (course1, [(1, 5), (2, 4), (3, 5), (4, 4), (5, 3)]),
+            (course2, [(1, 4), (2, 5), (3, 3)]),
+            (course3, [(2, 5), (4, 2), (5, 4), (6, 3)]),
+        ]
+
+        ratings = [
+            CourseRating(
+                course_id=course.id,
+                user_id=user_id,
+                rating=value,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow(),
+            )
+            for course, course_ratings in ratings_data
+            for user_id, value in course_ratings
+        ]
+        db.add_all(ratings)
+        db.commit()
+
         print("✅ Sample data created successfully!")
         print(f"   - Created {len([teacher1, teacher2, teacher3])} teachers")
         print(f"   - Created {len([course1, course2, course3])} courses")
         print(f"   - Created {len(lessons_data)} lessons")
+        print(f"   - Created {len(ratings)} ratings")
 
     except Exception as e:
         db.rollback()
@@ -163,6 +188,7 @@ def clear_all_data():
 
     try:
         # Delete in reverse order to avoid foreign key constraints
+        db.query(CourseRating).delete()
         db.query(Lesson).delete()
         db.execute(course_teachers.delete())
         db.query(Course).delete()

@@ -1,7 +1,8 @@
 import pytest
 from unittest.mock import Mock
 from fastapi.testclient import TestClient
-from app.main import app, get_course_service
+from app.main import app
+from app.core.deps import get_course_service
 from app.services.course_service import CourseService
 
 
@@ -12,14 +13,18 @@ MOCK_COURSES_LIST = [
         "name": "Curso de React",
         "description": "Aprende React desde cero",
         "thumbnail": "https://via.placeholder.com/150",
-        "slug": "curso-de-react"
+        "slug": "curso-de-react",
+        "average_rating": 4.5,
+        "total_ratings": 2
     },
     {
         "id": 2,
         "name": "Curso de Python",
         "description": "Domina Python paso a paso",
         "thumbnail": "https://via.placeholder.com/200",
-        "slug": "curso-de-python"
+        "slug": "curso-de-python",
+        "average_rating": 0.0,
+        "total_ratings": 0
     }
 ]
 
@@ -30,6 +35,10 @@ MOCK_COURSE_DETAIL = {
     "thumbnail": "https://via.placeholder.com/150",
     "slug": "curso-de-react",
     "teacher_id": [1, 2],
+    "teachers": [
+        {"id": 1, "name": "Juan Pérez"},
+        {"id": 2, "name": "María García"}
+    ],
     "classes": [
         {
             "id": 1,
@@ -43,7 +52,19 @@ MOCK_COURSE_DETAIL = {
             "description": "Aprende a crear componentes",
             "slug": "componentes-en-react"
         }
-    ]
+    ],
+    "average_rating": 4.5,
+    "total_ratings": 2,
+    "rating_distribution": {1: 0, 2: 0, 3: 0, 4: 1, 5: 1}
+}
+
+MOCK_CLASS_DETAIL = {
+    "id": 1,
+    "title": "Introducción a React",
+    "description": "Conceptos básicos de React",
+    "slug": "introduccion-a-react",
+    "video": "https://example.com/video.mp4",
+    "duration": 0
 }
 
 
@@ -136,6 +157,8 @@ class TestCoursesEndpoints:
             assert isinstance(course["description"], str)
             assert isinstance(course["thumbnail"], str)
             assert isinstance(course["slug"], str)
+            assert isinstance(course["average_rating"], float)
+            assert isinstance(course["total_ratings"], int)
         
         # Verify mock was called
         mock_course_service.get_all_courses.assert_called_once()
@@ -182,6 +205,16 @@ class TestCoursesEndpoints:
         # Verify teacher_id contains integers
         for teacher_id in data["teacher_id"]:
             assert isinstance(teacher_id, int)
+
+        # Verify teachers and rating fields
+        assert data["teachers"] == [
+            {"id": 1, "name": "Juan Pérez"},
+            {"id": 2, "name": "María García"}
+        ]
+        assert data["average_rating"] == 4.5
+        assert data["total_ratings"] == 2
+        # JSON object keys are strings
+        assert data["rating_distribution"] == {"1": 0, "2": 0, "3": 0, "4": 1, "5": 1}
         
         # Verify classes structure
         for class_item in data["classes"]:
@@ -219,6 +252,27 @@ class TestCoursesEndpoints:
         mock_course_service.get_course_by_slug.assert_called_once_with("curso-de-c++")
 
 
+class TestClassesEndpoint:
+    """Tests for GET /classes/{class_id}"""
+
+    def test_get_class_success(self, client, mock_course_service):
+        mock_course_service.get_class_by_id.return_value = MOCK_CLASS_DETAIL
+
+        response = client.get("/classes/1")
+
+        assert response.status_code == 200
+        assert response.json() == MOCK_CLASS_DETAIL
+        mock_course_service.get_class_by_id.assert_called_once_with(1)
+
+    def test_get_class_not_found(self, client, mock_course_service):
+        mock_course_service.get_class_by_id.return_value = None
+
+        response = client.get("/classes/999")
+
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Class not found"}
+
+
 class TestContractCompliance:
     """Additional tests to ensure strict contract compliance"""
     
@@ -229,7 +283,10 @@ class TestContractCompliance:
         response = client.get("/courses")
         data = response.json()
         
-        expected_fields = {"id", "name", "description", "thumbnail", "slug"}
+        expected_fields = {
+            "id", "name", "description", "thumbnail", "slug",
+            "average_rating", "total_ratings"
+        }
         
         for course in data:
             # Verify no extra fields beyond contract
@@ -244,7 +301,10 @@ class TestContractCompliance:
         data = response.json()
         
         # Verify main course fields
-        expected_course_fields = {"id", "name", "description", "thumbnail", "slug", "teacher_id", "classes"}
+        expected_course_fields = {
+            "id", "name", "description", "thumbnail", "slug", "teacher_id", "teachers",
+            "classes", "average_rating", "total_ratings", "rating_distribution"
+        }
         actual_course_fields = set(data.keys())
         assert actual_course_fields == expected_course_fields
         

@@ -13,16 +13,19 @@ export interface CourseRating {
   updated_at: string; // ISO 8601
 }
 
-// Request payload para crear/actualizar rating
-export interface RatingRequest {
-  user_id: number;
+// Body de PUT /courses/{course_id}/ratings/me (el usuario va en el header X-User-Id)
+export interface MyRatingRequest {
   rating: number; // 1-5
 }
+
+// Conteo de votos por estrella. Las claves llegan como string en el JSON.
+export type RatingDistribution = Record<'1' | '2' | '3' | '4' | '5', number>;
 
 // Estadísticas agregadas de ratings de un curso
 export interface RatingStats {
   average_rating: number; // 0.0 - 5.0
   total_ratings: number; // Cantidad total
+  rating_distribution: RatingDistribution;
 }
 
 // Estados de UI para operaciones de rating
@@ -61,8 +64,24 @@ export function isCourseRating(obj: unknown): obj is CourseRating {
   );
 }
 
+const RATING_KEYS = ['1', '2', '3', '4', '5'] as const;
+
 /**
- * Type guard: Valida que un objeto sea RatingStats válido
+ * Type guard: Valida que un objeto sea una distribución 1-5 válida
+ */
+export function isRatingDistribution(obj: unknown): obj is RatingDistribution {
+  if (!obj || typeof obj !== 'object') return false;
+
+  const candidate = obj as Record<string, unknown>;
+
+  return RATING_KEYS.every(
+    (key) => typeof candidate[key] === 'number' && (candidate[key] as number) >= 0
+  );
+}
+
+/**
+ * Type guard: Valida que un objeto sea RatingStats válido.
+ * La distribución se valida solo si está presente.
  */
 export function isRatingStats(obj: unknown): obj is RatingStats {
   if (!obj || typeof obj !== 'object') return false;
@@ -74,7 +93,9 @@ export function isRatingStats(obj: unknown): obj is RatingStats {
     candidate.average_rating >= 0 &&
     candidate.average_rating <= 5 &&
     typeof candidate.total_ratings === 'number' &&
-    candidate.total_ratings >= 0
+    candidate.total_ratings >= 0 &&
+    (candidate.rating_distribution === undefined ||
+      isRatingDistribution(candidate.rating_distribution))
   );
 }
 
@@ -92,3 +113,11 @@ export class ApiError extends Error {
     this.name = 'ApiError';
   }
 }
+
+/**
+ * Resultado de las Server Actions de rating. `rating` es el valor guardado
+ * (null tras quitar la calificación).
+ */
+export type ActionResult =
+  | { ok: true; rating: number | null }
+  | { ok: false; error: string };

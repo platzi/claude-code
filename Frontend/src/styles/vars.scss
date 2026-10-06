@@ -13,6 +13,13 @@ $colors: (
   // Text Colors
   'text-primary': #111,
   'text-secondary': #222,
+  'text-muted': #595959,
+
+  // Rating Colors
+  'star': #ffc107,
+  'star-empty': #8a8a8a,
+  'success': #1e7e34,
+  'error': #c62828,
 );
 
 // Function to get color values

@@ -1,40 +1,65 @@
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { CourseDetail } from "@/types";
 import { CourseDetailComponent } from "@/components/CourseDetail/CourseDetail";
+import { getCurrentUserId } from "@/lib/currentUser";
+import { coursesApi } from "@/services/coursesApi";
+import { ratingsApi } from "@/services/ratingsApi";
+import { rateCourse, removeRating } from "./actions";
 
 interface CoursePageProps {
-  params: {
-    slug: string;
-  };
+  params: Promise<{ slug: string }>;
 }
 
-async function getCourseData(slug: string): Promise<CourseDetail> {
-  const response = await fetch(`http://localhost:8000/courses/${slug}`, {
-    cache: "no-store", // Ensures fresh data on each request
-  });
+// cache(): la página y generateMetadata comparten un solo fetch por request
+const getCourseData = cache(async (slug: string): Promise<CourseDetail> => {
+  const course = await coursesApi.getCourseBySlug(slug);
 
-  if (response.status === 404) {
+  if (!course) {
     notFound();
   }
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch course data");
-  }
+  return course;
+});
 
-  return response.json();
+// Si falla la consulta del rating del usuario, la página se muestra igual
+// (sin selección); el voto sigue funcionando porque el PUT es un upsert.
+async function getUserRating(courseId: number, userId: number): Promise<number | null> {
+  try {
+    const rating = await ratingsApi.getMyRating(courseId, userId);
+    return rating?.rating ?? null;
+  } catch (error) {
+    console.error("Failed to fetch user rating", error);
+    return null;
+  }
 }
 
 export default async function CoursePage({ params }: CoursePageProps) {
-  const courseData = await getCourseData(params.slug);
+  const { slug } = await params;
+  const [courseData, userId] = await Promise.all([getCourseData(slug), getCurrentUserId()]);
 
-  return <CourseDetailComponent course={courseData} />;
+  if (userId === null) {
+    return <CourseDetailComponent course={courseData} />;
+  }
+
+  const userRating = await getUserRating(courseData.id, userId);
+
+  return (
+    <CourseDetailComponent
+      course={courseData}
+      userRating={userRating}
+      onRate={rateCourse.bind(null, courseData.id, slug)}
+      onRemove={removeRating.bind(null, courseData.id, slug)}
+    />
+  );
 }
 
 export async function generateMetadata({ params }: CoursePageProps) {
-  const courseData = await getCourseData(params.slug);
+  const { slug } = await params;
+  const courseData = await getCourseData(slug);
 
   return {
-    title: `${courseData.title} - Curso Online`,
+    title: `${courseData.name} - Curso Online`,
     description: courseData.description,
   };
 }

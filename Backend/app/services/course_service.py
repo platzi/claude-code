@@ -1,11 +1,18 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 from datetime import datetime
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_
+from sqlalchemy.exc import IntegrityError
 from app.models.course import Course
 from app.models.lesson import Lesson
-from app.models.teacher import Teacher
 from app.models.course_rating import CourseRating
+from app.services.exceptions import (
+    CourseNotFoundError,
+    InvalidRatingError,
+    RatingNotFoundError,
+)
+
+RATING_VALUES = range(1, 6)
 
 
 class CourseService:
@@ -21,35 +28,44 @@ class CourseService:
         """
         Get all courses with basic information including rating stats.
 
+        A single query: courses LEFT JOIN active ratings, grouped by course,
+        so the cost doesn't grow with the number of courses (no N+1).
+
         Returns:
             List of course dictionaries with: id, name, description, thumbnail, slug,
             average_rating, total_ratings
         """
-        courses = self.db.query(Course).filter(Course.deleted_at.is_(None)).all()
+        rows = (
+            self.db.query(
+                Course,
+                func.coalesce(func.avg(CourseRating.rating), 0).label("average"),
+                func.count(CourseRating.id).label("total"),
+            )
+            .outerjoin(
+                CourseRating,
+                and_(
+                    CourseRating.course_id == Course.id,
+                    CourseRating.deleted_at.is_(None),
+                ),
+            )
+            .filter(Course.deleted_at.is_(None))
+            .group_by(Course.id)
+            .order_by(Course.id)
+            .all()
+        )
 
-        result = []
-        for course in courses:
-            # Obtener stats de ratings para cada curso
-            try:
-                rating_stats = self.get_course_rating_stats(course.id)
-            except ValueError:
-                # Si falla, usar valores por defecto
-                rating_stats = {
-                    "average_rating": 0.0,
-                    "total_ratings": 0
-                }
-
-            result.append({
+        return [
+            {
                 "id": course.id,
                 "name": course.name,
                 "description": course.description,
                 "thumbnail": course.thumbnail,
                 "slug": course.slug,
-                "average_rating": rating_stats["average_rating"],
-                "total_ratings": rating_stats["total_ratings"]
-            })
-
-        return result
+                "average_rating": round(float(average), 2),
+                "total_ratings": total,
+            }
+            for course, average, total in rows
+        ]
 
     def get_course_by_slug(self, slug: str) -> Optional[Dict[str, Any]]:
         """
@@ -75,16 +91,7 @@ class CourseService:
         if not course:
             return None
 
-        # Obtener stats de ratings eficientemente
-        try:
-            rating_stats = self.get_course_rating_stats(course.id)
-        except ValueError:
-            # Si falla, usar valores por defecto
-            rating_stats = {
-                "average_rating": 0.0,
-                "total_ratings": 0,
-                "rating_distribution": {i: 0 for i in range(1, 6)}
-            }
+        rating_stats = self._compute_rating_stats(course.id)
 
         return {
             "id": course.id,
@@ -93,6 +100,10 @@ class CourseService:
             "thumbnail": course.thumbnail,
             "slug": course.slug,
             "teacher_id": [teacher.id for teacher in course.teachers],
+            "teachers": [
+                {"id": teacher.id, "name": teacher.name}
+                for teacher in course.teachers
+            ],
             "classes": [
                 {
                     "id": lesson.id,
@@ -103,11 +114,63 @@ class CourseService:
                 for lesson in course.lessons
                 if lesson.deleted_at is None
             ],
-            # NUEVOS CAMPOS DE RATING
             "average_rating": rating_stats["average_rating"],
             "total_ratings": rating_stats["total_ratings"],
             "rating_distribution": rating_stats["rating_distribution"]
         }
+
+    def get_class_by_id(self, class_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Get lesson ("class" in the API) details by ID.
+
+        Soft-deleted lessons, and lessons of soft-deleted courses, are not found.
+
+        Returns:
+            Lesson dictionary with video URL, or None if not found
+        """
+        lesson = (
+            self.db.query(Lesson)
+            .join(Course, Lesson.course_id == Course.id)
+            .filter(
+                Lesson.id == class_id,
+                Lesson.deleted_at.is_(None),
+                Course.deleted_at.is_(None),
+            )
+            .first()
+        )
+
+        if not lesson:
+            return None
+
+        return {
+            "id": lesson.id,
+            "title": lesson.name,
+            "description": lesson.description,
+            "slug": lesson.slug,
+            "video": lesson.video_url,
+            "duration": 0  # TODO: agregar duración si está disponible
+        }
+
+    def _ensure_course_exists(self, course_id: int) -> None:
+        """Raise CourseNotFoundError unless an active course with that id exists."""
+        course = self.db.query(Course).filter(
+            Course.id == course_id,
+            Course.deleted_at.is_(None)
+        ).first()
+
+        if not course:
+            raise CourseNotFoundError(course_id)
+
+    def _get_active_rating(self, course_id: int, user_id: int) -> Optional[CourseRating]:
+        return (
+            self.db.query(CourseRating)
+            .filter(
+                CourseRating.course_id == course_id,
+                CourseRating.user_id == user_id,
+                CourseRating.deleted_at.is_(None)
+            )
+            .first()
+        )
 
     def get_course_ratings(self, course_id: int) -> List[Dict[str, Any]]:
         """
@@ -120,18 +183,10 @@ class CourseService:
             List of rating dictionaries with user_id, rating, timestamps
 
         Raises:
-            ValueError: If course_id doesn't exist
+            CourseNotFoundError: If course_id doesn't exist
         """
-        # Validar que el curso exists
-        course = self.db.query(Course).filter(
-            Course.id == course_id,
-            Course.deleted_at.is_(None)
-        ).first()
+        self._ensure_course_exists(course_id)
 
-        if not course:
-            raise ValueError(f"Course with id {course_id} not found")
-
-        # Query optimizado para obtener ratings
         ratings = (
             self.db.query(CourseRating)
             .filter(
@@ -144,20 +199,18 @@ class CourseService:
 
         return [rating.to_dict() for rating in ratings]
 
-    def add_course_rating(
+    def upsert_course_rating(
         self,
         course_id: int,
         user_id: int,
         rating: int
-    ) -> Dict[str, Any]:
+    ) -> Tuple[Dict[str, Any], bool]:
         """
-        Add a new rating or update existing active rating for a course.
+        Create the user's active rating for a course, or update it if it exists.
 
-        Business Logic:
-        - If user has active rating: UPDATE existing rating
-        - If user has no active rating: CREATE new rating
-        - Validates rating is between 1-5
-        - Validates course exists
+        Concurrency: the partial unique index uq_course_ratings_active_user_course
+        rejects a second active rating. If a concurrent request wins the race
+        between our SELECT and INSERT, we roll back and update its row instead.
 
         Args:
             course_id: The course ID
@@ -165,183 +218,86 @@ class CourseService:
             rating: Rating value (1-5)
 
         Returns:
-            Dictionary with created/updated rating data
+            (rating dictionary, created) where created is True only if a new
+            row was inserted.
 
         Raises:
-            ValueError: If course doesn't exist or rating out of range
+            InvalidRatingError: If rating is out of range
+            CourseNotFoundError: If course doesn't exist
         """
-        # Validar rating en rango
         if not 1 <= rating <= 5:
-            raise ValueError("Rating must be between 1 and 5")
+            raise InvalidRatingError(rating)
 
-        # Validar que el curso existe
-        course = self.db.query(Course).filter(
-            Course.id == course_id,
-            Course.deleted_at.is_(None)
-        ).first()
+        self._ensure_course_exists(course_id)
 
-        if not course:
-            raise ValueError(f"Course with id {course_id} not found")
-
-        # Buscar rating existente ACTIVO del usuario para este curso
-        existing_rating = (
-            self.db.query(CourseRating)
-            .filter(
-                CourseRating.course_id == course_id,
-                CourseRating.user_id == user_id,
-                CourseRating.deleted_at.is_(None)
-            )
-            .first()
-        )
-
+        existing_rating = self._get_active_rating(course_id, user_id)
         if existing_rating:
-            # ACTUALIZAR rating existente
-            existing_rating.rating = rating
-            existing_rating.updated_at = datetime.utcnow()
-            self.db.flush()
-            self.db.commit()
-            self.db.refresh(existing_rating)
-            return existing_rating.to_dict()
-        else:
-            # CREAR nuevo rating
-            new_rating = CourseRating(
-                course_id=course_id,
-                user_id=user_id,
-                rating=rating
-            )
-            self.db.add(new_rating)
-            self.db.commit()
-            self.db.refresh(new_rating)
-            return new_rating.to_dict()
+            return self._apply_rating(existing_rating, rating), False
 
-    def update_course_rating(
-        self,
-        course_id: int,
-        user_id: int,
-        rating: int
-    ) -> Dict[str, Any]:
+        new_rating = CourseRating(
+            course_id=course_id,
+            user_id=user_id,
+            rating=rating
+        )
+        self.db.add(new_rating)
+        try:
+            self.db.commit()
+        except IntegrityError:
+            self.db.rollback()
+            existing_rating = self._get_active_rating(course_id, user_id)
+            if existing_rating is None:
+                raise
+            return self._apply_rating(existing_rating, rating), False
+
+        self.db.refresh(new_rating)
+        return new_rating.to_dict(), True
+
+    def _apply_rating(self, course_rating: CourseRating, rating: int) -> Dict[str, Any]:
+        course_rating.rating = rating
+        course_rating.updated_at = datetime.utcnow()
+        self.db.commit()
+        self.db.refresh(course_rating)
+        return course_rating.to_dict()
+
+    def delete_course_rating(self, course_id: int, user_id: int) -> None:
         """
-        Update an existing active rating.
-
-        Note: This method is semantically identical to add_course_rating
-        but provides explicit UPDATE semantics for REST API (PUT verb).
-
-        Args:
-            course_id: The course ID
-            user_id: The user ID
-            rating: New rating value (1-5)
-
-        Returns:
-            Dictionary with updated rating data
+        Soft delete the user's active rating (sets deleted_at).
 
         Raises:
-            ValueError: If rating doesn't exist or is inactive
+            RatingNotFoundError: If the user has no active rating
         """
-        # Validar rating en rango
-        if not 1 <= rating <= 5:
-            raise ValueError("Rating must be between 1 and 5")
-
-        # Buscar rating ACTIVO existente
-        existing_rating = (
-            self.db.query(CourseRating)
-            .filter(
-                CourseRating.course_id == course_id,
-                CourseRating.user_id == user_id,
-                CourseRating.deleted_at.is_(None)
-            )
-            .first()
-        )
-
-        if not existing_rating:
-            raise ValueError(
-                f"No active rating found for user {user_id} on course {course_id}"
-            )
-
-        # Actualizar rating
-        existing_rating.rating = rating
-        existing_rating.updated_at = datetime.utcnow()
-        self.db.commit()
-        self.db.refresh(existing_rating)
-
-        return existing_rating.to_dict()
-
-    def delete_course_rating(self, course_id: int, user_id: int) -> bool:
-        """
-        Soft delete a course rating.
-
-        Sets deleted_at timestamp instead of removing from database.
-        This allows historical tracking and potential undeletion.
-
-        Args:
-            course_id: The course ID
-            user_id: The user ID
-
-        Returns:
-            True if rating was deleted, False if rating not found
-        """
-        # Buscar rating ACTIVO
-        rating_to_delete = (
-            self.db.query(CourseRating)
-            .filter(
-                CourseRating.course_id == course_id,
-                CourseRating.user_id == user_id,
-                CourseRating.deleted_at.is_(None)
-            )
-            .first()
-        )
-
+        rating_to_delete = self._get_active_rating(course_id, user_id)
         if not rating_to_delete:
-            return False
+            raise RatingNotFoundError()
 
-        # Soft delete: establecer deleted_at
-        rating_to_delete.deleted_at = datetime.utcnow()
-        rating_to_delete.updated_at = datetime.utcnow()
+        now = datetime.utcnow()
+        rating_to_delete.deleted_at = now
+        rating_to_delete.updated_at = now
         self.db.commit()
-
-        return True
 
     def get_user_course_rating(
         self,
         course_id: int,
         user_id: int
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Dict[str, Any]:
         """
-        Get a specific user's rating for a course.
+        Get a specific user's active rating for a course.
 
-        Useful for:
-        - Checking if user has already rated
-        - Displaying user's current rating in UI
-        - Preventing duplicate rating submissions
-
-        Args:
-            course_id: The course ID
-            user_id: The user ID
-
-        Returns:
-            Rating dictionary if exists and active, None otherwise
+        Raises:
+            CourseNotFoundError: If course doesn't exist
+            RatingNotFoundError: If the user hasn't rated the course
         """
-        # Buscar rating activo específico
-        rating = (
-            self.db.query(CourseRating)
-            .filter(
-                CourseRating.course_id == course_id,
-                CourseRating.user_id == user_id,
-                CourseRating.deleted_at.is_(None)
-            )
-            .first()
-        )
+        self._ensure_course_exists(course_id)
 
+        rating = self._get_active_rating(course_id, user_id)
         if not rating:
-            return None
+            raise RatingNotFoundError()
 
         return rating.to_dict()
 
     def get_course_rating_stats(self, course_id: int) -> Dict[str, Any]:
         """
         Get aggregated rating statistics for a course.
-
-        Performs aggregation at database level for optimal performance.
-        Use this instead of Course.average_rating property for API responses.
 
         Args:
             course_id: The course ID
@@ -351,50 +307,37 @@ class CourseService:
             - average_rating: float (0.0 if no ratings)
             - total_ratings: int
             - rating_distribution: dict with counts per rating value (1-5)
+
+        Raises:
+            CourseNotFoundError: If course doesn't exist
         """
-        # Validar que el curso existe
-        course = self.db.query(Course).filter(
-            Course.id == course_id,
-            Course.deleted_at.is_(None)
-        ).first()
+        self._ensure_course_exists(course_id)
+        return self._compute_rating_stats(course_id)
 
-        if not course:
-            raise ValueError(f"Course with id {course_id} not found")
-
-        # Agregación SQL eficiente
+    def _compute_rating_stats(self, course_id: int) -> Dict[str, Any]:
+        """Average, total and per-star distribution in a single aggregate query."""
         stats = (
             self.db.query(
-                func.coalesce(func.avg(CourseRating.rating), 0.0).label('average'),
-                func.count(CourseRating.id).label('total')
+                func.coalesce(func.avg(CourseRating.rating), 0).label("average"),
+                func.count(CourseRating.id).label("total"),
+                *(
+                    func.count(CourseRating.id)
+                    .filter(CourseRating.rating == value)
+                    .label(f"stars_{value}")
+                    for value in RATING_VALUES
+                ),
             )
             .filter(
                 CourseRating.course_id == course_id,
                 CourseRating.deleted_at.is_(None)
             )
-            .first()
+            .one()
         )
-
-        # Distribución de ratings (cuántos 1, 2, 3, 4, 5 estrellas)
-        distribution_query = (
-            self.db.query(
-                CourseRating.rating,
-                func.count(CourseRating.id).label('count')
-            )
-            .filter(
-                CourseRating.course_id == course_id,
-                CourseRating.deleted_at.is_(None)
-            )
-            .group_by(CourseRating.rating)
-            .all()
-        )
-
-        # Construir diccionario de distribución
-        rating_distribution = {i: 0 for i in range(1, 6)}
-        for rating_value, count in distribution_query:
-            rating_distribution[rating_value] = count
 
         return {
             "average_rating": round(float(stats.average), 2),
             "total_ratings": stats.total,
-            "rating_distribution": rating_distribution
-        } 
+            "rating_distribution": {
+                value: getattr(stats, f"stars_{value}") for value in RATING_VALUES
+            },
+        }

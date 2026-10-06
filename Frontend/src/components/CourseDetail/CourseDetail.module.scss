@@ -108,7 +108,6 @@
   flex-wrap: wrap;
 }
 
-.duration,
 .classCount {
   color: color('text-primary');
   font-size: 1rem;
@@ -117,6 +116,55 @@
   background: color('off-white');
   border-radius: 8px;
   border: 1px solid color('light-gray');
+}
+
+.ratingsSection {
+  background: color('white');
+  border-radius: 18px;
+  padding: 2.5rem;
+  margin-bottom: 3rem;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.05);
+  border: 2px solid color('light-gray');
+
+  @media (max-width: 768px) {
+    padding: 1.5rem;
+  }
+}
+
+.ratingsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.5rem;
+  align-items: start;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ratingSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.averageRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.averageValue {
+  font-size: 3rem;
+  font-weight: 900;
+  line-height: 1;
+  color: color('text-primary');
+}
+
+.ratingHint {
+  color: color('text-muted');
+  font-size: 1rem;
+  font-weight: 500;
 }
 
 .classesSection {
@@ -192,11 +240,4 @@
   font-weight: 500;
   line-height: 1.5;
   margin-bottom: 0.5rem;
-}
-
-.classDuration {
-  color: color('primary');
-  font-size: 0.9rem;
-  font-weight: 600;
-  align-self: flex-start;
 }

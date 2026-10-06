@@ -1,19 +1,10 @@
 import styles from "./page.module.scss";
-import { Course } from "@/types";
 import { Course as CourseComponent } from "@/components/Course/Course";
+import { coursesApi } from "@/services/coursesApi";
 import Link from "next/link";
 
-async function getCourses(): Promise<Course[]> {
-  const res = await fetch("http://localhost:8000/courses", { cache: "no-store" });
-  if (!res.ok) {
-    throw new Error("Failed to fetch courses");
-  }
-  const data = await res.json();
-  return data;
-}
-
 export default async function Home() {
-  const courses = await getCourses();
+  const courses = await coursesApi.getCourses();
 
   return (
     <div className={styles.page}>

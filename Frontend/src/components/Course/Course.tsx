@@ -5,7 +5,6 @@ import { StarRating } from "@/components/StarRating/StarRating";
 type CourseProps = Omit<CourseType, "slug">;
 
 export const Course = ({
-  id,
   name,
   description,
   thumbnail,
@@ -15,6 +14,7 @@ export const Course = ({
   return (
     <article className={styles.courseCard}>
       <div className={styles.thumbnailContainer}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={thumbnail} alt={name} className={styles.thumbnail} />
       </div>
       <div className={styles.courseInfo}>
@@ -29,7 +29,6 @@ export const Course = ({
               totalRatings={total_ratings}
               showCount={true}
               size="small"
-              readonly={true}
             />
           </div>
         )}

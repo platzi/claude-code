@@ -169,19 +169,37 @@ describe('StarRating Component', () => {
     });
   });
 
-  describe('Readonly Mode', () => {
-    it('renders in readonly mode by default', () => {
-      const { container } = render(<StarRating rating={3} readonly={true} />);
+  describe('SVG gradient ids', () => {
+    it('does not share the half-star gradient id between instances', () => {
+      const { container } = render(
+        <>
+          <StarRating rating={3.5} />
+          <StarRating rating={2.5} />
+        </>
+      );
 
-      // En modo readonly, no debe haber elementos interactivos
-      const buttons = container.querySelectorAll('button');
-      expect(buttons).toHaveLength(0);
+      const ids = Array.from(container.querySelectorAll('linearGradient')).map((g) => g.id);
+      expect(ids).toHaveLength(2);
+      expect(new Set(ids).size).toBe(2);
+
+      const halfFills = Array.from(container.querySelectorAll('path'))
+        .map((path) => path.getAttribute('fill'))
+        .filter((fill) => fill?.startsWith('url('));
+      expect(halfFills).toEqual(ids.map((id) => `url(#${id})`));
     });
 
-    it('displays rating in readonly mode', () => {
-      render(<StarRating rating={4.5} readonly={true} showCount={true} totalRatings={50} />);
+    it('renders no gradient when there is no half star', () => {
+      const { container } = render(<StarRating rating={4} />);
 
-      expect(screen.getByText('(50)')).toBeInTheDocument();
+      expect(container.querySelectorAll('linearGradient')).toHaveLength(0);
+    });
+  });
+
+  describe('Read-only display', () => {
+    it('renders no interactive elements', () => {
+      const { container } = render(<StarRating rating={3} />);
+
+      expect(container.querySelectorAll('button, input')).toHaveLength(0);
     });
   });
 });

@@ -1,3 +1,5 @@
+import type { RatingDistribution } from "./rating";
+
 // Course types
 export interface Course {
   id: number;
@@ -10,20 +12,35 @@ export interface Course {
   total_ratings?: number; // Cantidad de ratings
 }
 
-// Class types
-export interface Class {
+// Resumen de clase dentro de GET /courses/{slug}
+export interface ClassSummary {
+  id: number;
+  name: string;
+  description: string;
+  slug: string;
+}
+
+// Respuesta de GET /classes/{class_id}
+export interface ClassDetail {
   id: number;
   title: string;
   description: string;
+  slug: string;
   video: string;
   duration: number;
-  slug: string;
+}
+
+export interface TeacherSummary {
+  id: number;
+  name: string;
 }
 
 // Course Detail type
 export interface CourseDetail extends Course {
-  description: string;
-  classes: Class[];
+  classes: ClassSummary[];
+  teacher_id: number[];
+  teachers?: TeacherSummary[];
+  rating_distribution?: RatingDistribution;
 }
 
 // Progress types

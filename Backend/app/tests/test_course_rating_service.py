@@ -5,9 +5,15 @@ Tests business logic in isolation using mocked database.
 import pytest
 from unittest.mock import Mock, MagicMock
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 from app.services.course_service import CourseService
 from app.models.course import Course
 from app.models.course_rating import CourseRating
+from app.services.exceptions import (
+    CourseNotFoundError,
+    InvalidRatingError,
+    RatingNotFoundError,
+)
 
 
 @pytest.fixture
@@ -83,7 +89,7 @@ class TestGetCourseRatings:
         mock_db_session.query.return_value.filter.return_value.first.return_value = None
 
         # Act & Assert
-        with pytest.raises(ValueError, match="Course with id 1 not found"):
+        with pytest.raises(CourseNotFoundError, match="Course with id 1 not found"):
             course_service.get_course_ratings(course_id=1)
 
     def test_get_ratings_empty_list(
@@ -104,54 +110,45 @@ class TestGetCourseRatings:
         assert result == []
 
 
-class TestAddCourseRating:
-    """Tests for add_course_rating method."""
+class TestUpsertCourseRating:
+    """Tests for upsert_course_rating method."""
 
-    def test_add_new_rating_success(
+    def test_creates_rating_when_user_has_none(
         self,
         course_service,
         mock_db_session,
         sample_course
     ):
-        """Test creating new rating when user hasn't rated before."""
+        """Creates a new rating and reports created=True."""
         # Arrange
         mock_db_session.query.return_value.filter.return_value.first.side_effect = [
             sample_course,  # Course exists check
             None  # No existing rating
         ]
-
-        new_rating = CourseRating(
-            id=1,
-            course_id=1,
-            user_id=42,
-            rating=5,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
-            deleted_at=None
-        )
         mock_db_session.refresh = Mock(side_effect=lambda obj: setattr(obj, 'id', 1))
 
         # Act
-        result = course_service.add_course_rating(
+        result, created = course_service.upsert_course_rating(
             course_id=1,
             user_id=42,
             rating=5
         )
 
         # Assert
+        assert created is True
         assert result["rating"] == 5
         assert result["user_id"] == 42
         mock_db_session.add.assert_called_once()
         mock_db_session.commit.assert_called_once()
 
-    def test_update_existing_rating(
+    def test_updates_existing_rating(
         self,
         course_service,
         mock_db_session,
         sample_course,
         sample_rating
     ):
-        """Test updating existing rating instead of creating duplicate."""
+        """Updates the active rating instead of creating a duplicate (created=False)."""
         # Arrange
         sample_rating.rating = 3  # Original rating
         mock_db_session.query.return_value.filter.return_value.first.side_effect = [
@@ -160,93 +157,84 @@ class TestAddCourseRating:
         ]
 
         # Act
-        result = course_service.add_course_rating(
+        result, created = course_service.upsert_course_rating(
             course_id=1,
             user_id=42,
             rating=5  # New rating
         )
 
         # Assert
-        assert sample_rating.rating == 5  # Rating was updated
-        mock_db_session.flush.assert_called_once()
+        assert created is False
+        assert sample_rating.rating == 5
+        assert result["rating"] == 5
         mock_db_session.commit.assert_called_once()
-        mock_db_session.add.assert_not_called()  # No new object added
+        mock_db_session.add.assert_not_called()
 
-    def test_add_rating_invalid_range(
+    def test_race_condition_updates_existing(
+        self,
+        course_service,
+        mock_db_session,
+        sample_course,
+        sample_rating
+    ):
+        """Concurrent insert hitting the unique index falls back to UPDATE."""
+        # Arrange
+        sample_rating.rating = 3
+        mock_db_session.query.return_value.filter.return_value.first.side_effect = [
+            sample_course,  # Course exists
+            None,  # No active rating at SELECT time
+            sample_rating  # Rating created by the concurrent request
+        ]
+        mock_db_session.commit.side_effect = [
+            IntegrityError("INSERT", {}, Exception("uq_course_ratings_active_user_course")),
+            None
+        ]
+
+        # Act
+        result, created = course_service.upsert_course_rating(course_id=1, user_id=42, rating=5)
+
+        # Assert
+        mock_db_session.rollback.assert_called_once()
+        assert created is False
+        assert sample_rating.rating == 5
+        assert result["rating"] == 5
+        assert mock_db_session.commit.call_count == 2
+
+    def test_integrity_error_without_existing_is_reraised(
         self,
         course_service,
         mock_db_session,
         sample_course
     ):
-        """Test adding rating with invalid value."""
+        """IntegrityError is re-raised when no active rating is found after rollback."""
         # Arrange
-        mock_db_session.query.return_value.filter.return_value.first.return_value = sample_course
+        mock_db_session.query.return_value.filter.return_value.first.side_effect = [
+            sample_course,
+            None,
+            None
+        ]
+        mock_db_session.commit.side_effect = IntegrityError("INSERT", {}, Exception("boom"))
 
         # Act & Assert
-        with pytest.raises(ValueError, match="Rating must be between 1 and 5"):
-            course_service.add_course_rating(course_id=1, user_id=42, rating=6)
+        with pytest.raises(IntegrityError):
+            course_service.upsert_course_rating(course_id=1, user_id=42, rating=5)
+        mock_db_session.rollback.assert_called_once()
 
-        with pytest.raises(ValueError, match="Rating must be between 1 and 5"):
-            course_service.add_course_rating(course_id=1, user_id=42, rating=0)
+    @pytest.mark.parametrize("rating", [0, 6])
+    def test_invalid_range(self, course_service, mock_db_session, rating):
+        """Out-of-range ratings raise InvalidRatingError before touching the DB."""
+        with pytest.raises(InvalidRatingError):
+            course_service.upsert_course_rating(course_id=1, user_id=42, rating=rating)
+        mock_db_session.query.assert_not_called()
 
-    def test_add_rating_course_not_found(self, course_service, mock_db_session):
-        """Test adding rating to non-existent course."""
+    def test_course_not_found(self, course_service, mock_db_session):
+        """Rating a non-existent course raises CourseNotFoundError."""
         # Arrange
         mock_db_session.query.return_value.filter.return_value.first.return_value = None
 
         # Act & Assert
-        with pytest.raises(ValueError, match="Course with id 999 not found"):
-            course_service.add_course_rating(course_id=999, user_id=42, rating=5)
-
-
-class TestUpdateCourseRating:
-    """Tests for update_course_rating method."""
-
-    def test_update_rating_success(
-        self,
-        course_service,
-        mock_db_session,
-        sample_rating
-    ):
-        """Test updating existing rating."""
-        # Arrange
-        sample_rating.rating = 3
-        mock_db_session.query.return_value.filter.return_value.first.return_value = sample_rating
-
-        # Act
-        result = course_service.update_course_rating(
-            course_id=1,
-            user_id=42,
-            rating=5
-        )
-
-        # Assert
-        assert sample_rating.rating == 5
-        assert result["rating"] == 5
-        mock_db_session.commit.assert_called_once()
-
-    def test_update_nonexistent_rating(self, course_service, mock_db_session):
-        """Test updating rating that doesn't exist."""
-        # Arrange
-        mock_db_session.query.return_value.filter.return_value.first.return_value = None
-
-        # Act & Assert
-        with pytest.raises(ValueError, match="No active rating found"):
-            course_service.update_course_rating(course_id=1, user_id=42, rating=5)
-
-    def test_update_rating_invalid_range(
-        self,
-        course_service,
-        mock_db_session,
-        sample_rating
-    ):
-        """Test updating with invalid rating value."""
-        # Arrange
-        mock_db_session.query.return_value.filter.return_value.first.return_value = sample_rating
-
-        # Act & Assert
-        with pytest.raises(ValueError, match="Rating must be between 1 and 5"):
-            course_service.update_course_rating(course_id=1, user_id=42, rating=10)
+        with pytest.raises(CourseNotFoundError, match="Course with id 999 not found"):
+            course_service.upsert_course_rating(course_id=999, user_id=42, rating=5)
 
 
 class TestDeleteCourseRating:
@@ -263,10 +251,9 @@ class TestDeleteCourseRating:
         mock_db_session.query.return_value.filter.return_value.first.return_value = sample_rating
 
         # Act
-        result = course_service.delete_course_rating(course_id=1, user_id=42)
+        course_service.delete_course_rating(course_id=1, user_id=42)
 
         # Assert
-        assert result is True
         assert sample_rating.deleted_at is not None
         mock_db_session.commit.assert_called_once()
 
@@ -275,11 +262,9 @@ class TestDeleteCourseRating:
         # Arrange
         mock_db_session.query.return_value.filter.return_value.first.return_value = None
 
-        # Act
-        result = course_service.delete_course_rating(course_id=1, user_id=42)
-
-        # Assert
-        assert result is False
+        # Act & Assert
+        with pytest.raises(RatingNotFoundError):
+            course_service.delete_course_rating(course_id=1, user_id=42)
         mock_db_session.commit.assert_not_called()
 
 
@@ -290,11 +275,15 @@ class TestGetUserCourseRating:
         self,
         course_service,
         mock_db_session,
+        sample_course,
         sample_rating
     ):
         """Test retrieving existing user rating."""
         # Arrange
-        mock_db_session.query.return_value.filter.return_value.first.return_value = sample_rating
+        mock_db_session.query.return_value.filter.return_value.first.side_effect = [
+            sample_course,
+            sample_rating
+        ]
 
         # Act
         result = course_service.get_user_course_rating(course_id=1, user_id=42)
@@ -304,20 +293,38 @@ class TestGetUserCourseRating:
         assert result["rating"] == 5
         assert result["user_id"] == 42
 
-    def test_get_user_rating_not_exists(self, course_service, mock_db_session):
-        """Test retrieving non-existent user rating."""
+    def test_get_user_rating_not_exists(self, course_service, mock_db_session, sample_course):
+        """User without an active rating raises RatingNotFoundError."""
+        # Arrange
+        mock_db_session.query.return_value.filter.return_value.first.side_effect = [
+            sample_course,
+            None
+        ]
+
+        # Act & Assert
+        with pytest.raises(RatingNotFoundError):
+            course_service.get_user_course_rating(course_id=1, user_id=42)
+
+    def test_get_user_rating_course_not_found(self, course_service, mock_db_session):
+        """Non-existent course raises CourseNotFoundError, not RatingNotFoundError."""
         # Arrange
         mock_db_session.query.return_value.filter.return_value.first.return_value = None
 
-        # Act
-        result = course_service.get_user_course_rating(course_id=1, user_id=42)
-
-        # Assert
-        assert result is None
+        # Act & Assert
+        with pytest.raises(CourseNotFoundError):
+            course_service.get_user_course_rating(course_id=999, user_id=42)
 
 
 class TestGetCourseRatingStats:
     """Tests for get_course_rating_stats method."""
+
+    @staticmethod
+    def stats_row(average, total, distribution):
+        return Mock(
+            average=average,
+            total=total,
+            **{f"stars_{value}": distribution.get(value, 0) for value in range(1, 6)}
+        )
 
     def test_get_stats_with_ratings(
         self,
@@ -325,27 +332,22 @@ class TestGetCourseRatingStats:
         mock_db_session,
         sample_course
     ):
-        """Test retrieving statistics for course with ratings."""
+        """Average, total and distribution come from one aggregate row."""
         # Arrange
-        mock_db_session.query.return_value.filter.return_value.first.side_effect = [
-            sample_course,  # Course exists
-            Mock(average=4.5, total=10)  # Stats query result
-        ]
-
-        distribution_results = [(5, 6), (4, 3), (3, 1)]
-        mock_db_session.query.return_value.filter.return_value.group_by.return_value.all.return_value = distribution_results
+        mock_db_session.query.return_value.filter.return_value.first.return_value = sample_course
+        mock_db_session.query.return_value.filter.return_value.one.return_value = self.stats_row(
+            4.5, 10, {5: 6, 4: 3, 3: 1}
+        )
 
         # Act
         result = course_service.get_course_rating_stats(course_id=1)
 
         # Assert
-        assert result["average_rating"] == 4.5
-        assert result["total_ratings"] == 10
-        assert result["rating_distribution"][5] == 6
-        assert result["rating_distribution"][4] == 3
-        assert result["rating_distribution"][3] == 1
-        assert result["rating_distribution"][2] == 0  # Not in data
-        assert result["rating_distribution"][1] == 0  # Not in data
+        assert result == {
+            "average_rating": 4.5,
+            "total_ratings": 10,
+            "rating_distribution": {1: 0, 2: 0, 3: 1, 4: 3, 5: 6},
+        }
 
     def test_get_stats_no_ratings(
         self,
@@ -353,13 +355,12 @@ class TestGetCourseRatingStats:
         mock_db_session,
         sample_course
     ):
-        """Test retrieving statistics for course with no ratings."""
+        """Course without ratings returns zeros."""
         # Arrange
-        mock_db_session.query.return_value.filter.return_value.first.side_effect = [
-            sample_course,
-            Mock(average=0.0, total=0)
-        ]
-        mock_db_session.query.return_value.filter.return_value.group_by.return_value.all.return_value = []
+        mock_db_session.query.return_value.filter.return_value.first.return_value = sample_course
+        mock_db_session.query.return_value.filter.return_value.one.return_value = self.stats_row(
+            0, 0, {}
+        )
 
         # Act
         result = course_service.get_course_rating_stats(course_id=1)
@@ -375,5 +376,5 @@ class TestGetCourseRatingStats:
         mock_db_session.query.return_value.filter.return_value.first.return_value = None
 
         # Act & Assert
-        with pytest.raises(ValueError, match="Course with id 999 not found"):
+        with pytest.raises(CourseNotFoundError, match="Course with id 999 not found"):
             course_service.get_course_rating_stats(course_id=999)

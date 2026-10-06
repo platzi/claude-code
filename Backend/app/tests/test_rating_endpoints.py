@@ -5,8 +5,15 @@ Tests HTTP interface with mocked service layer.
 import pytest
 from unittest.mock import Mock
 from fastapi.testclient import TestClient
-from app.main import app, get_course_service
+from app.main import app
+from app.core.deps import get_course_service
+from app.core.security import get_current_user_id
 from app.services.course_service import CourseService
+from app.services.exceptions import (
+    CourseNotFoundError,
+    InvalidRatingError,
+    RatingNotFoundError,
+)
 
 
 MOCK_RATING = {
@@ -43,69 +50,6 @@ def client(mock_course_service):
     app.dependency_overrides.clear()
 
 
-class TestAddCourseRatingEndpoint:
-    """Tests for POST /courses/{course_id}/ratings"""
-
-    def test_add_rating_success(self, client, mock_course_service):
-        """Test successfully adding a new rating."""
-        # Arrange
-        mock_course_service.add_course_rating.return_value = MOCK_RATING
-
-        # Act
-        response = client.post(
-            "/courses/1/ratings",
-            json={"user_id": 42, "rating": 5}
-        )
-
-        # Assert
-        assert response.status_code == 201
-        data = response.json()
-        assert data["rating"] == 5
-        assert data["user_id"] == 42
-        mock_course_service.add_course_rating.assert_called_once_with(
-            course_id=1,
-            user_id=42,
-            rating=5
-        )
-
-    def test_add_rating_invalid_rating_value(self, client, mock_course_service):
-        """Test adding rating with invalid value (Pydantic validation)."""
-        # Act
-        response = client.post(
-            "/courses/1/ratings",
-            json={"user_id": 42, "rating": 6}
-        )
-
-        # Assert
-        assert response.status_code == 422  # Unprocessable Entity (Pydantic validation)
-
-    def test_add_rating_course_not_found(self, client, mock_course_service):
-        """Test adding rating to non-existent course."""
-        # Arrange
-        mock_course_service.add_course_rating.side_effect = ValueError("Course with id 999 not found")
-
-        # Act
-        response = client.post(
-            "/courses/999/ratings",
-            json={"user_id": 42, "rating": 5}
-        )
-
-        # Assert
-        assert response.status_code == 404
-        assert "not found" in response.json()["detail"]
-
-    def test_add_rating_missing_fields(self, client, mock_course_service):
-        """Test adding rating with missing required fields."""
-        # Act
-        response = client.post(
-            "/courses/1/ratings",
-            json={"user_id": 42}  # Missing rating
-        )
-
-        # Assert
-        assert response.status_code == 422
-
-
 class TestGetCourseRatingsEndpoint:
     """Tests for GET /courses/{course_id}/ratings"""
 
@@ -139,7 +83,7 @@ class TestGetCourseRatingsEndpoint:
     def test_get_ratings_course_not_found(self, client, mock_course_service):
         """Test retrieving ratings for non-existent course."""
         # Arrange
-        mock_course_service.get_course_ratings.side_effect = ValueError("Course with id 999 not found")
+        mock_course_service.get_course_ratings.side_effect = CourseNotFoundError(999)
 
         # Act
         response = client.get("/courses/999/ratings")
@@ -169,117 +113,140 @@ class TestGetCourseRatingStatsEndpoint:
     def test_get_stats_course_not_found(self, client, mock_course_service):
         """Test retrieving stats for non-existent course."""
         # Arrange
-        mock_course_service.get_course_rating_stats.side_effect = ValueError("Course with id 999 not found")
+        mock_course_service.get_course_rating_stats.side_effect = CourseNotFoundError(999)
 
         # Act
         response = client.get("/courses/999/ratings/stats")
 
         # Assert
         assert response.status_code == 404
+        assert response.json()["code"] == "COURSE_NOT_FOUND"
 
 
-class TestGetUserCourseRatingEndpoint:
-    """Tests for GET /courses/{course_id}/ratings/user/{user_id}"""
+@pytest.fixture
+def authed_client(client):
+    """Client whose current user is 42 (overrides the X-User-Id dependency)."""
+    app.dependency_overrides[get_current_user_id] = lambda: 42
+    return client
 
-    def test_get_user_rating_exists(self, client, mock_course_service):
-        """Test retrieving existing user rating."""
-        # Arrange
+
+class TestMyRatingEndpoints:
+    """Tests for /courses/{course_id}/ratings/me"""
+
+    @pytest.mark.parametrize("method", ["get", "put", "delete"])
+    def test_missing_user_header_returns_401(self, client, mock_course_service, method):
+        kwargs = {"json": {"rating": 4}} if method == "put" else {}
+
+        response = getattr(client, method)("/courses/1/ratings/me", **kwargs)
+
+        assert response.status_code == 401
+        assert response.json() == {"detail": "Not authenticated", "code": "UNAUTHENTICATED"}
+        assert not mock_course_service.method_calls
+
+    def test_user_id_comes_from_x_user_id_header(self, client, mock_course_service):
         mock_course_service.get_user_course_rating.return_value = MOCK_RATING
 
-        # Act
-        response = client.get("/courses/1/ratings/user/42")
+        response = client.get("/courses/1/ratings/me", headers={"X-User-Id": "42"})
 
-        # Assert
         assert response.status_code == 200
-        data = response.json()
-        assert data["user_id"] == 42
-        assert data["rating"] == 5
+        mock_course_service.get_user_course_rating.assert_called_once_with(1, 42)
 
-    def test_get_user_rating_not_exists(self, client, mock_course_service):
-        """Test retrieving non-existent user rating."""
-        # Arrange
-        mock_course_service.get_user_course_rating.return_value = None
+    def test_non_positive_user_header_is_rejected(self, client, mock_course_service):
+        response = client.get("/courses/1/ratings/me", headers={"X-User-Id": "0"})
 
-        # Act
-        response = client.get("/courses/1/ratings/user/42")
+        assert response.status_code == 422
+        mock_course_service.get_user_course_rating.assert_not_called()
 
-        # Assert
-        assert response.status_code == 204
+    def test_get_my_rating_success(self, authed_client, mock_course_service):
+        mock_course_service.get_user_course_rating.return_value = MOCK_RATING
 
+        response = authed_client.get("/courses/1/ratings/me")
 
-class TestUpdateCourseRatingEndpoint:
-    """Tests for PUT /courses/{course_id}/ratings/{user_id}"""
-
-    def test_update_rating_success(self, client, mock_course_service):
-        """Test successfully updating a rating."""
-        # Arrange
-        updated_rating = MOCK_RATING.copy()
-        updated_rating["rating"] = 3
-        mock_course_service.update_course_rating.return_value = updated_rating
-
-        # Act
-        response = client.put(
-            "/courses/1/ratings/42",
-            json={"user_id": 42, "rating": 3}
-        )
-
-        # Assert
         assert response.status_code == 200
-        data = response.json()
-        assert data["rating"] == 3
+        assert response.json() == MOCK_RATING
 
-    def test_update_rating_user_id_mismatch(self, client, mock_course_service):
-        """Test updating with mismatched user_id in path and body."""
-        # Act
-        response = client.put(
-            "/courses/1/ratings/42",
-            json={"user_id": 99, "rating": 3}  # Different user_id
-        )
+    def test_get_my_rating_not_rated_returns_404_with_code(self, authed_client, mock_course_service):
+        mock_course_service.get_user_course_rating.side_effect = RatingNotFoundError()
 
-        # Assert
-        assert response.status_code == 400
-        assert "must match" in response.json()["detail"]
+        response = authed_client.get("/courses/1/ratings/me")
 
-    def test_update_rating_not_found(self, client, mock_course_service):
-        """Test updating non-existent rating."""
-        # Arrange
-        mock_course_service.update_course_rating.side_effect = ValueError("No active rating found")
-
-        # Act
-        response = client.put(
-            "/courses/1/ratings/42",
-            json={"user_id": 42, "rating": 3}
-        )
-
-        # Assert
         assert response.status_code == 404
+        assert response.json() == {
+            "detail": "User has not rated this course",
+            "code": "RATING_NOT_FOUND",
+        }
 
+    def test_get_my_rating_course_not_found(self, authed_client, mock_course_service):
+        mock_course_service.get_user_course_rating.side_effect = CourseNotFoundError(999)
 
-class TestDeleteCourseRatingEndpoint:
-    """Tests for DELETE /courses/{course_id}/ratings/{user_id}"""
+        response = authed_client.get("/courses/999/ratings/me")
 
-    def test_delete_rating_success(self, client, mock_course_service):
-        """Test successfully deleting a rating."""
-        # Arrange
-        mock_course_service.delete_course_rating.return_value = True
+        assert response.status_code == 404
+        assert response.json()["code"] == "COURSE_NOT_FOUND"
 
-        # Act
-        response = client.delete("/courses/1/ratings/42")
+    def test_put_creates_rating_returns_201(self, authed_client, mock_course_service):
+        mock_course_service.upsert_course_rating.return_value = (MOCK_RATING, True)
 
-        # Assert
+        response = authed_client.put("/courses/1/ratings/me", json={"rating": 5})
+
+        assert response.status_code == 201
+        assert response.json() == MOCK_RATING
+        mock_course_service.upsert_course_rating.assert_called_once_with(
+            course_id=1, user_id=42, rating=5
+        )
+
+    def test_put_updates_rating_returns_200(self, authed_client, mock_course_service):
+        mock_course_service.upsert_course_rating.return_value = ({**MOCK_RATING, "rating": 3}, False)
+
+        response = authed_client.put("/courses/1/ratings/me", json={"rating": 3})
+
+        assert response.status_code == 200
+        assert response.json()["rating"] == 3
+
+    def test_put_ignores_user_id_in_body(self, authed_client, mock_course_service):
+        mock_course_service.upsert_course_rating.return_value = (MOCK_RATING, True)
+
+        authed_client.put("/courses/1/ratings/me", json={"rating": 5, "user_id": 999})
+
+        assert mock_course_service.upsert_course_rating.call_args.kwargs["user_id"] == 42
+
+    @pytest.mark.parametrize("rating", [0, 6, "cinco"])
+    def test_put_invalid_rating_returns_422(self, authed_client, mock_course_service, rating):
+        response = authed_client.put("/courses/1/ratings/me", json={"rating": rating})
+
+        assert response.status_code == 422
+        mock_course_service.upsert_course_rating.assert_not_called()
+
+    def test_put_invalid_rating_from_service_returns_422_with_code(self, authed_client, mock_course_service):
+        mock_course_service.upsert_course_rating.side_effect = InvalidRatingError(9)
+
+        response = authed_client.put("/courses/1/ratings/me", json={"rating": 5})
+
+        assert response.status_code == 422
+        assert response.json()["code"] == "INVALID_RATING"
+
+    def test_put_course_not_found(self, authed_client, mock_course_service):
+        mock_course_service.upsert_course_rating.side_effect = CourseNotFoundError(999)
+
+        response = authed_client.put("/courses/999/ratings/me", json={"rating": 5})
+
+        assert response.status_code == 404
+        assert response.json()["code"] == "COURSE_NOT_FOUND"
+
+    def test_delete_my_rating_returns_204(self, authed_client, mock_course_service):
+        response = authed_client.delete("/courses/1/ratings/me")
+
         assert response.status_code == 204
+        assert response.content == b""
         mock_course_service.delete_course_rating.assert_called_once_with(1, 42)
 
-    def test_delete_rating_not_found(self, client, mock_course_service):
-        """Test deleting non-existent rating."""
-        # Arrange
-        mock_course_service.delete_course_rating.return_value = False
+    def test_delete_my_rating_not_found(self, authed_client, mock_course_service):
+        mock_course_service.delete_course_rating.side_effect = RatingNotFoundError()
 
-        # Act
-        response = client.delete("/courses/1/ratings/42")
+        response = authed_client.delete("/courses/1/ratings/me")
 
-        # Assert
         assert response.status_code == 404
+        assert response.json()["code"] == "RATING_NOT_FOUND"
 
 
 class TestRatingEndpointsContractCompliance:

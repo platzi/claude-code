@@ -1,0 +1,133 @@
+@import '../../styles/vars.scss';
+
+.ratingInput {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+
+  &[aria-busy='true'] {
+    opacity: 0.7;
+    cursor: progress;
+  }
+}
+
+.legend {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: color('text-primary');
+  margin-bottom: 0.5rem;
+}
+
+.stars {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.option {
+  position: relative;
+  display: inline-flex;
+}
+
+// El input queda accesible (foco, lector de pantalla) pero invisible;
+// la estrella es su <label>.
+.radio {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+}
+
+.star {
+  display: inline-flex;
+  padding: 0.25rem;
+  border-radius: 6px;
+  cursor: pointer;
+  color: color('star-empty');
+  transition: transform 0.15s ease, color 0.15s ease;
+
+  svg {
+    width: 32px;
+    height: 32px;
+    fill: currentColor;
+  }
+
+  &:hover {
+    transform: scale(1.1);
+  }
+
+  &.filled {
+    color: color('star');
+  }
+}
+
+.radio:focus-visible + .star {
+  outline: 3px solid color('primary');
+  outline-offset: 2px;
+}
+
+.current {
+  color: color('text-muted');
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.removeButton {
+  align-self: flex-start;
+  background: none;
+  border: 2px solid color('primary');
+  color: color('primary');
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.4rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+
+  &:hover:not(:disabled) {
+    background: color('primary');
+    color: color('white');
+  }
+
+  &:focus-visible {
+    outline: 3px solid color('primary');
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
+}
+
+.status {
+  min-height: 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+
+  &.success {
+    color: color('success');
+  }
+
+  &.error {
+    color: color('error');
+  }
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

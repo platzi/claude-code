@@ -1,8 +1,9 @@
 /**
  * StarRating Component
- * Componente de calificación con estrellas (modo readonly para lista de cursos)
+ * Muestra un promedio de estrellas (solo lectura). Para votar, ver RatingInput.
  */
 
+import { useId } from 'react';
 import styles from './StarRating.module.scss';
 
 interface StarRatingProps {
@@ -10,7 +11,6 @@ interface StarRatingProps {
   totalRatings?: number; // Número total de ratings
   showCount?: boolean; // Mostrar contador de ratings
   size?: 'small' | 'medium' | 'large'; // Tamaño visual
-  readonly?: boolean; // Modo solo lectura
   className?: string; // Clase CSS adicional
 }
 
@@ -19,9 +19,10 @@ interface StarRatingProps {
  */
 interface StarIconProps {
   fillState: 'empty' | 'half' | 'full';
+  gradientId: string;
 }
 
-const StarIcon = ({ fillState }: StarIconProps) => {
+const StarIcon = ({ fillState, gradientId }: StarIconProps) => {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -29,20 +30,23 @@ const StarIcon = ({ fillState }: StarIconProps) => {
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
-      <defs>
-        {/* Gradient para media estrella */}
-        <linearGradient id="halfStarGradient">
-          <stop offset="50%" stopColor="currentColor" />
-          <stop offset="50%" stopColor="transparent" />
-        </linearGradient>
-      </defs>
+      {/* Gradient para media estrella: solo la estrella "half" lo define,
+          y hay como mucho una por StarRating, así que el id es único en la página */}
+      {fillState === 'half' && (
+        <defs>
+          <linearGradient id={gradientId}>
+            <stop offset="50%" stopColor="currentColor" />
+            <stop offset="50%" stopColor="transparent" />
+          </linearGradient>
+        </defs>
+      )}
       <path
         d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
         fill={
           fillState === 'full'
             ? 'currentColor'
             : fillState === 'half'
-            ? 'url(#halfStarGradient)'
+            ? `url(#${gradientId})`
             : 'none'
         }
         stroke="currentColor"
@@ -62,9 +66,12 @@ export const StarRating = ({
   totalRatings = 0,
   showCount = false,
   size = 'medium',
-  readonly = false,
   className = '',
 }: StarRatingProps) => {
+  // Id único por instancia: con un id fijo, varias tarjetas en la misma página
+  // compartirían el gradiente y el navegador usaría solo el primero.
+  const gradientId = useId();
+
   /**
    * Determina el estado de relleno de cada estrella
    */
@@ -94,7 +101,7 @@ export const StarRating = ({
             className={`${styles.star} ${styles[getStarFillState(star)]}`}
             aria-hidden="true"
           >
-            <StarIcon fillState={getStarFillState(star)} />
+            <StarIcon fillState={getStarFillState(star)} gradientId={gradientId} />
           </span>
         ))}
       </div>

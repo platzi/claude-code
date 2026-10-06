@@ -2,37 +2,21 @@
 Pydantic schemas for course rating requests and responses.
 Provides validation and serialization for API endpoints.
 """
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Dict
 
 
-class RatingRequest(BaseModel):
+class MyRatingRequest(BaseModel):
     """
-    Schema for creating or updating a course rating.
-
-    Validation:
-    - user_id must be positive integer
-    - rating must be between 1 and 5 (inclusive)
+    Body of PUT /courses/{course_id}/ratings/me.
+    The user comes from get_current_user_id(), never from the body.
     """
-    user_id: int = Field(
-        ...,
-        gt=0,
-        description="ID of the user submitting the rating"
-    )
     rating: int = Field(
         ...,
         ge=1,
         le=5,
         description="Rating value from 1 (worst) to 5 (best)"
     )
-
-    @field_validator('rating')
-    @classmethod
-    def validate_rating_range(cls, v: int) -> int:
-        """Additional validation for rating range."""
-        if not 1 <= v <= 5:
-            raise ValueError('Rating must be between 1 and 5')
-        return v
 
 
 class RatingResponse(BaseModel):
@@ -47,8 +31,7 @@ class RatingResponse(BaseModel):
     created_at: str
     updated_at: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RatingStatsResponse(BaseModel):
@@ -72,20 +55,21 @@ class RatingStatsResponse(BaseModel):
         description="Count of ratings per value (1-5)"
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "average_rating": 4.35,
                 "total_ratings": 142,
                 "rating_distribution": {
-                    1: 5,
-                    2: 10,
-                    3: 25,
-                    4: 50,
-                    5: 52
+                    "1": 5,
+                    "2": 10,
+                    "3": 25,
+                    "4": 50,
+                    "5": 52
                 }
             }
         }
+    )
 
 
 class ErrorResponse(BaseModel):
@@ -94,4 +78,4 @@ class ErrorResponse(BaseModel):
     Used for validation errors and business logic errors.
     """
     detail: str
-    error_code: str | None = None
+    code: str
